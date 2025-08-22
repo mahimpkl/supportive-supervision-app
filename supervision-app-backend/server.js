@@ -34,7 +34,11 @@ app.use(limiter);
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'],
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [
+    'http://localhost:3000',
+    'http://10.0.2.2:3000',      // Android emulator
+    'http://10.128.123.246:3000'  // Your computer's IP for physical devices
+  ],
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -86,10 +90,11 @@ async function startServer() {
     await db.testConnection();
     console.log('✅ Database connected successfully');
     
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      console.log(`📱 Mobile access: http://10.128.123.246:${PORT}/health`);
       console.log(`📋 Available endpoints:`);
       console.log(`   - Authentication: /api/auth/*`);
       console.log(`   - User Management: /api/users/*`);

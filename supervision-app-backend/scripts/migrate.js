@@ -40,6 +40,11 @@ async function createTables() {
         sync_status VARCHAR(20) DEFAULT 'local',
         supervisor_signature TEXT,
         facility_representative_signature TEXT,
+        -- Add the missing recommendation columns
+        recommendations_visit_1 TEXT,
+        recommendations_visit_2 TEXT,
+        recommendations_visit_3 TEXT,
+        recommendations_visit_4 TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )

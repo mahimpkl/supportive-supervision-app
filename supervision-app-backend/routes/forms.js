@@ -660,141 +660,168 @@ async function getLogisticsResponses(formId) {
   }
   
   // Helper functions for inserting form sections
-  async function insertLogisticsResponses(client, formId, data) {
-    if (!data) return;
-    
-    const query = `
-      INSERT INTO logistics_responses (
-        form_id, b1_visit_1, b1_visit_2, b1_visit_3, b1_visit_4, b1_comment,
-        amlodipine_5_10mg_v1, amlodipine_5_10mg_v2, amlodipine_5_10mg_v3, amlodipine_5_10mg_v4,
-        enalapril_2_5_10mg_v1, enalapril_2_5_10mg_v2, enalapril_2_5_10mg_v3, enalapril_2_5_10mg_v4,
-        losartan_25_50mg_v1, losartan_25_50mg_v2, losartan_25_50mg_v3, losartan_25_50mg_v4,
-        hydrochlorothiazide_12_5_25mg_v1, hydrochlorothiazide_12_5_25mg_v2, hydrochlorothiazide_12_5_25mg_v3, hydrochlorothiazide_12_5_25mg_v4,
-        chlorthalidone_6_25_12_5mg_v1, chlorthalidone_6_25_12_5mg_v2, chlorthalidone_6_25_12_5mg_v3, chlorthalidone_6_25_12_5mg_v4,
-        atorvastatin_5mg_v1, atorvastatin_5mg_v2, atorvastatin_5mg_v3, atorvastatin_5mg_v4,
-        atorvastatin_10mg_v1, atorvastatin_10mg_v2, atorvastatin_10mg_v3, atorvastatin_10mg_v4,
-        atorvastatin_20mg_v1, atorvastatin_20mg_v2, atorvastatin_20mg_v3, atorvastatin_20mg_v4,
-        other_statins_v1, other_statins_v2, other_statins_v3, other_statins_v4,
-        metformin_500mg_v1, metformin_500mg_v2, metformin_500mg_v3, metformin_500mg_v4,
-        metformin_1000mg_v1, metformin_1000mg_v2, metformin_1000mg_v3, metformin_1000mg_v4,
-        glimepiride_1_2mg_v1, glimepiride_1_2mg_v2, glimepiride_1_2mg_v3, glimepiride_1_2mg_v4,
-        gliclazide_40_80mg_v1, gliclazide_40_80mg_v2, gliclazide_40_80mg_v3, gliclazide_40_80mg_v4,
-        glipizide_2_5_5mg_v1, glipizide_2_5_5mg_v2, glipizide_2_5_5mg_v3, glipizide_2_5_5mg_v4,
-        sitagliptin_50mg_v1, sitagliptin_50mg_v2, sitagliptin_50mg_v3, sitagliptin_50mg_v4,
-        pioglitazone_5mg_v1, pioglitazone_5mg_v2, pioglitazone_5mg_v3, pioglitazone_5mg_v4,
-        empagliflozin_10mg_v1, empagliflozin_10mg_v2, empagliflozin_10mg_v3, empagliflozin_10mg_v4,
-        insulin_soluble_v1, insulin_soluble_v2, insulin_soluble_v3, insulin_soluble_v4,
-        insulin_nph_v1, insulin_nph_v2, insulin_nph_v3, insulin_nph_v4,
-        other_hypoglycemic_agents_v1, other_hypoglycemic_agents_v2, other_hypoglycemic_agents_v3, other_hypoglycemic_agents_v4,
-        dextrose_25_solution_v1, dextrose_25_solution_v2, dextrose_25_solution_v3, dextrose_25_solution_v4,
-        aspirin_75mg_v1, aspirin_75mg_v2, aspirin_75mg_v3, aspirin_75mg_v4,
-        clopidogrel_75mg_v1, clopidogrel_75mg_v2, clopidogrel_75mg_v3, clopidogrel_75mg_v4,
-        metoprolol_succinate_12_5_25_50mg_v1, metoprolol_succinate_12_5_25_50mg_v2, metoprolol_succinate_12_5_25_50mg_v3, metoprolol_succinate_12_5_25_50mg_v4,
-        isosorbide_dinitrate_5mg_v1, isosorbide_dinitrate_5mg_v2, isosorbide_dinitrate_5mg_v3, isosorbide_dinitrate_5mg_v4,
-        other_drugs_v1, other_drugs_v2, other_drugs_v3, other_drugs_v4,
-        b2_visit_1, b2_visit_2, b2_visit_3, b2_visit_4, b2_comment,
-        b3_visit_1, b3_visit_2, b3_visit_3, b3_visit_4, b3_comment,
-        b4_visit_1, b4_visit_2, b4_visit_3, b4_visit_4, b4_comment,
-        b5_visit_1, b5_visit_2, b5_visit_3, b5_visit_4, b5_comment
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-        $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-        $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42,
-        $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54,
-        $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66,
-        $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78,
-        $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90,
-        $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102,
-        $103, $104, $105, $106, $107, $108, $109, $110, $111, $112, $113, $114,
-        $115, $116, $117, $118, $119, $120, $121, $122, $123, $124, $125, $126,
-        $127, $128, $129, $130
-      )
-    `;
-    
-    return client.query(query, [
-      formId,
-      data.b1_visit_1 || null, data.b1_visit_2 || null, data.b1_visit_3 || null, data.b1_visit_4 || null, data.b1_comment || null,
-      data.amlodipine_5_10mg_v1 || null, data.amlodipine_5_10mg_v2 || null, data.amlodipine_5_10mg_v3 || null, data.amlodipine_5_10mg_v4 || null,
-      data.enalapril_2_5_10mg_v1 || null, data.enalapril_2_5_10mg_v2 || null, data.enalapril_2_5_10mg_v3 || null, data.enalapril_2_5_10mg_v4 || null,
-      data.losartan_25_50mg_v1 || null, data.losartan_25_50mg_v2 || null, data.losartan_25_50mg_v3 || null, data.losartan_25_50mg_v4 || null,
-      data.hydrochlorothiazide_12_5_25mg_v1 || null, data.hydrochlorothiazide_12_5_25mg_v2 || null, data.hydrochlorothiazide_12_5_25mg_v3 || null, data.hydrochlorothiazide_12_5_25mg_v4 || null,
-      data.chlorthalidone_6_25_12_5mg_v1 || null, data.chlorthalidone_6_25_12_5mg_v2 || null, data.chlorthalidone_6_25_12_5mg_v3 || null, data.chlorthalidone_6_25_12_5mg_v4 || null,
-      data.atorvastatin_5mg_v1 || null, data.atorvastatin_5mg_v2 || null, data.atorvastatin_5mg_v3 || null, data.atorvastatin_5mg_v4 || null,
-      data.atorvastatin_10mg_v1 || null, data.atorvastatin_10mg_v2 || null, data.atorvastatin_10mg_v3 || null, data.atorvastatin_10mg_v4 || null,
-      data.atorvastatin_20mg_v1 || null, data.atorvastatin_20mg_v2 || null, data.atorvastatin_20mg_v3 || null, data.atorvastatin_20mg_v4 || null,
-      data.other_statins_v1 || null, data.other_statins_v2 || null, data.other_statins_v3 || null, data.other_statins_v4 || null,
-      data.metformin_500mg_v1 || null, data.metformin_500mg_v2 || null, data.metformin_500mg_v3 || null, data.metformin_500mg_v4 || null,
-      data.metformin_1000mg_v1 || null, data.metformin_1000mg_v2 || null, data.metformin_1000mg_v3 || null, data.metformin_1000mg_v4 || null,
-      data.glimepiride_1_2mg_v1 || null, data.glimepiride_1_2mg_v2 || null, data.glimepiride_1_2mg_v3 || null, data.glimepiride_1_2mg_v4 || null,
-      data.gliclazide_40_80mg_v1 || null, data.gliclazide_40_80mg_v2 || null, data.gliclazide_40_80mg_v3 || null, data.gliclazide_40_80mg_v4 || null,
-      data.glipizide_2_5_5mg_v1 || null, data.glipizide_2_5_5mg_v2 || null, data.glipizide_2_5_5mg_v3 || null, data.glipizide_2_5_5mg_v4 || null,
-      data.sitagliptin_50mg_v1 || null, data.sitagliptin_50mg_v2 || null, data.sitagliptin_50mg_v3 || null, data.sitagliptin_50mg_v4 || null,
-      data.pioglitazone_5mg_v1 || null, data.pioglitazone_5mg_v2 || null, data.pioglitazone_5mg_v3 || null, data.pioglitazone_5mg_v4 || null,
-      data.empagliflozin_10mg_v1 || null, data.empagliflozin_10mg_v2 || null, data.empagliflozin_10mg_v3 || null, data.empagliflozin_10mg_v4 || null,
-      data.insulin_soluble_v1 || null, data.insulin_soluble_v2 || null, data.insulin_soluble_v3 || null, data.insulin_soluble_v4 || null,
-      data.insulin_nph_v1 || null, data.insulin_nph_v2 || null, data.insulin_nph_v3 || null, data.insulin_nph_v4 || null,
-      data.other_hypoglycemic_agents_v1 || null, data.other_hypoglycemic_agents_v2 || null, data.other_hypoglycemic_agents_v3 || null, data.other_hypoglycemic_agents_v4 || null,
-      data.dextrose_25_solution_v1 || null, data.dextrose_25_solution_v2 || null, data.dextrose_25_solution_v3 || null, data.dextrose_25_solution_v4 || null,
-      data.aspirin_75mg_v1 || null, data.aspirin_75mg_v2 || null, data.aspirin_75mg_v3 || null, data.aspirin_75mg_v4 || null,
-      data.clopidogrel_75mg_v1 || null, data.clopidogrel_75mg_v2 || null, data.clopidogrel_75mg_v3 || null, data.clopidogrel_75mg_v4 || null,
-      data.metoprolol_succinate_12_5_25_50mg_v1 || null, data.metoprolol_succinate_12_5_25_50mg_v2 || null, data.metoprolol_succinate_12_5_25_50mg_v3 || null, data.metoprolol_succinate_12_5_25_50mg_v4 || null,
-      data.isosorbide_dinitrate_5mg_v1 || null, data.isosorbide_dinitrate_5mg_v2 || null, data.isosorbide_dinitrate_5mg_v3 || null, data.isosorbide_dinitrate_5mg_v4 || null,
-      data.other_drugs_v1 || null, data.other_drugs_v2 || null, data.other_drugs_v3 || null, data.other_drugs_v4 || null,
-      data.b2_visit_1 || null, data.b2_visit_2 || null, data.b2_visit_3 || null, data.b2_visit_4 || null, data.b2_comment || null,
-      data.b3_visit_1 || null, data.b3_visit_2 || null, data.b3_visit_3 || null, data.b3_visit_4 || null, data.b3_comment || null,
-      data.b4_visit_1 || null, data.b4_visit_2 || null, data.b4_visit_3 || null, data.b4_visit_4 || null, data.b4_comment || null,
-      data.b5_visit_1 || null, data.b5_visit_2 || null, data.b5_visit_3 || null, data.b5_visit_4 || null, data.b5_comment || null
-    ]);
-  }
+ // Complete fixed insertLogisticsResponses function for your forms.js
+
+// Fixed insertLogisticsResponses function for your forms.js
+async function insertLogisticsResponses(client, formId, data) {
+  if (!data) return;
   
-  async function insertEquipmentResponses(client, formId, data) {
-    if (!data) return;
-    
-    const query = `
-      INSERT INTO equipment_responses (
-        form_id, 
-        sphygmomanometer_v1, sphygmomanometer_v2, sphygmomanometer_v3, sphygmomanometer_v4,
-        weighing_scale_v1, weighing_scale_v2, weighing_scale_v3, weighing_scale_v4,
-        measuring_tape_v1, measuring_tape_v2, measuring_tape_v3, measuring_tape_v4,
-        peak_expiratory_flow_meter_v1, peak_expiratory_flow_meter_v2, peak_expiratory_flow_meter_v3, peak_expiratory_flow_meter_v4,
-        oxygen_v1, oxygen_v2, oxygen_v3, oxygen_v4,
-        oxygen_mask_v1, oxygen_mask_v2, oxygen_mask_v3, oxygen_mask_v4,
-        nebulizer_v1, nebulizer_v2, nebulizer_v3, nebulizer_v4,
-        pulse_oximetry_v1, pulse_oximetry_v2, pulse_oximetry_v3, pulse_oximetry_v4,
-        glucometer_v1, glucometer_v2, glucometer_v3, glucometer_v4,
-        glucometer_strips_v1, glucometer_strips_v2, glucometer_strips_v3, glucometer_strips_v4,
-        lancets_v1, lancets_v2, lancets_v3, lancets_v4,
-        urine_dipstick_v1, urine_dipstick_v2, urine_dipstick_v3, urine_dipstick_v4,
-        ecg_v1, ecg_v2, ecg_v3, ecg_v4,
-        other_equipment_v1, other_equipment_v2, other_equipment_v3, other_equipment_v4
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-        $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25,
-        $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37,
-        $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49,
-        $50, $51, $52, $53
-      )
-    `;
-    
-    return client.query(query, [
-      formId,
-      data.sphygmomanometer_v1 || null, data.sphygmomanometer_v2 || null, data.sphygmomanometer_v3 || null, data.sphygmomanometer_v4 || null,
-      data.weighing_scale_v1 || null, data.weighing_scale_v2 || null, data.weighing_scale_v3 || null, data.weighing_scale_v4 || null,
-      data.measuring_tape_v1 || null, data.measuring_tape_v2 || null, data.measuring_tape_v3 || null, data.measuring_tape_v4 || null,
-      data.peak_expiratory_flow_meter_v1 || null, data.peak_expiratory_flow_meter_v2 || null, data.peak_expiratory_flow_meter_v3 || null, data.peak_expiratory_flow_meter_v4 || null,
-      data.oxygen_v1 || null, data.oxygen_v2 || null, data.oxygen_v3 || null, data.oxygen_v4 || null,
-      data.oxygen_mask_v1 || null, data.oxygen_mask_v2 || null, data.oxygen_mask_v3 || null, data.oxygen_mask_v4 || null,
-      data.nebulizer_v1 || null, data.nebulizer_v2 || null, data.nebulizer_v3 || null, data.nebulizer_v4 || null,
-      data.pulse_oximetry_v1 || null, data.pulse_oximetry_v2 || null, data.pulse_oximetry_v3 || null, data.pulse_oximetry_v4 || null,
-      data.glucometer_v1 || null, data.glucometer_v2 || null, data.glucometer_v3 || null, data.glucometer_v4 || null,
-      data.glucometer_strips_v1 || null, data.glucometer_strips_v2 || null, data.glucometer_strips_v3 || null, data.glucometer_strips_v4 || null,
-      data.lancets_v1 || null, data.lancets_v2 || null, data.lancets_v3 || null, data.lancets_v4 || null,
-      data.urine_dipstick_v1 || null, data.urine_dipstick_v2 || null, data.urine_dipstick_v3 || null, data.urine_dipstick_v4 || null,
-      data.ecg_v1 || null, data.ecg_v2 || null, data.ecg_v3 || null, data.ecg_v4 || null,
-      data.other_equipment_v1 || null, data.other_equipment_v2 || null, data.other_equipment_v3 || null, data.other_equipment_v4 || null
-    ]);
-  }
+  const query = `
+    INSERT INTO logistics_responses (
+      form_id, b1_visit_1, b1_visit_2, b1_visit_3, b1_visit_4, b1_comment,
+      amlodipine_5_10mg_v1, amlodipine_5_10mg_v2, amlodipine_5_10mg_v3, amlodipine_5_10mg_v4,
+      enalapril_2_5_10mg_v1, enalapril_2_5_10mg_v2, enalapril_2_5_10mg_v3, enalapril_2_5_10mg_v4,
+      losartan_25_50mg_v1, losartan_25_50mg_v2, losartan_25_50mg_v3, losartan_25_50mg_v4,
+      hydrochlorothiazide_12_5_25mg_v1, hydrochlorothiazide_12_5_25mg_v2, hydrochlorothiazide_12_5_25mg_v3, hydrochlorothiazide_12_5_25mg_v4,
+      chlorthalidone_6_25_12_5mg_v1, chlorthalidone_6_25_12_5mg_v2, chlorthalidone_6_25_12_5mg_v3, chlorthalidone_6_25_12_5mg_v4,
+      other_antihypertensives_v1, other_antihypertensives_v2, other_antihypertensives_v3, other_antihypertensives_v4,
+      atorvastatin_5mg_v1, atorvastatin_5mg_v2, atorvastatin_5mg_v3, atorvastatin_5mg_v4,
+      atorvastatin_10mg_v1, atorvastatin_10mg_v2, atorvastatin_10mg_v3, atorvastatin_10mg_v4,
+      atorvastatin_20mg_v1, atorvastatin_20mg_v2, atorvastatin_20mg_v3, atorvastatin_20mg_v4,
+      other_statins_v1, other_statins_v2, other_statins_v3, other_statins_v4,
+      metformin_500mg_v1, metformin_500mg_v2, metformin_500mg_v3, metformin_500mg_v4,
+      metformin_1000mg_v1, metformin_1000mg_v2, metformin_1000mg_v3, metformin_1000mg_v4,
+      glimepiride_1_2mg_v1, glimepiride_1_2mg_v2, glimepiride_1_2mg_v3, glimepiride_1_2mg_v4,
+      gliclazide_40_80mg_v1, gliclazide_40_80mg_v2, gliclazide_40_80mg_v3, gliclazide_40_80mg_v4,
+      glipizide_2_5_5mg_v1, glipizide_2_5_5mg_v2, glipizide_2_5_5mg_v3, glipizide_2_5_5mg_v4,
+      sitagliptin_50mg_v1, sitagliptin_50mg_v2, sitagliptin_50mg_v3, sitagliptin_50mg_v4,
+      pioglitazone_5mg_v1, pioglitazone_5mg_v2, pioglitazone_5mg_v3, pioglitazone_5mg_v4,
+      empagliflozin_10mg_v1, empagliflozin_10mg_v2, empagliflozin_10mg_v3, empagliflozin_10mg_v4,
+      insulin_soluble_inj_v1, insulin_soluble_inj_v2, insulin_soluble_inj_v3, insulin_soluble_inj_v4,
+      insulin_nph_inj_v1, insulin_nph_inj_v2, insulin_nph_inj_v3, insulin_nph_inj_v4,
+      other_hypoglycemic_agents_v1, other_hypoglycemic_agents_v2, other_hypoglycemic_agents_v3, other_hypoglycemic_agents_v4,
+      dextrose_25_solution_v1, dextrose_25_solution_v2, dextrose_25_solution_v3, dextrose_25_solution_v4,
+      aspirin_75mg_v1, aspirin_75mg_v2, aspirin_75mg_v3, aspirin_75mg_v4,
+      clopidogrel_75mg_v1, clopidogrel_75mg_v2, clopidogrel_75mg_v3, clopidogrel_75mg_v4,
+      metoprolol_succinate_12_5_25_50mg_v1, metoprolol_succinate_12_5_25_50mg_v2, metoprolol_succinate_12_5_25_50mg_v3, metoprolol_succinate_12_5_25_50mg_v4,
+      isosorbide_dinitrate_5mg_v1, isosorbide_dinitrate_5mg_v2, isosorbide_dinitrate_5mg_v3, isosorbide_dinitrate_5mg_v4,
+      other_drugs_v1, other_drugs_v2, other_drugs_v3, other_drugs_v4,
+      amoxicillin_clavulanic_potassium_625mg_v1, amoxicillin_clavulanic_potassium_625mg_v2, amoxicillin_clavulanic_potassium_625mg_v3, amoxicillin_clavulanic_potassium_625mg_v4,
+      azithromycin_500mg_v1, azithromycin_500mg_v2, azithromycin_500mg_v3, azithromycin_500mg_v4,
+      other_antibiotics_v1, other_antibiotics_v2, other_antibiotics_v3, other_antibiotics_v4,
+      salbutamol_dpi_v1, salbutamol_dpi_v2, salbutamol_dpi_v3, salbutamol_dpi_v4,
+      salbutamol_v1, salbutamol_v2, salbutamol_v3, salbutamol_v4,
+      ipratropium_v1, ipratropium_v2, ipratropium_v3, ipratropium_v4,
+      tiotropium_bromide_v1, tiotropium_bromide_v2, tiotropium_bromide_v3, tiotropium_bromide_v4,
+      formoterol_v1, formoterol_v2, formoterol_v3, formoterol_v4,
+      other_bronchodilators_v1, other_bronchodilators_v2, other_bronchodilators_v3, other_bronchodilators_v4,
+      prednisolone_5_10_20mg_v1, prednisolone_5_10_20mg_v2, prednisolone_5_10_20mg_v3, prednisolone_5_10_20mg_v4,
+      other_steroids_oral_v1, other_steroids_oral_v2, other_steroids_oral_v3, other_steroids_oral_v4,
+      b2_visit_1, b2_visit_2, b2_visit_3, b2_visit_4, b2_comment,
+      b3_visit_1, b3_visit_2, b3_visit_3, b3_visit_4, b3_comment,
+      b4_visit_1, b4_visit_2, b4_visit_3, b4_visit_4, b4_comment,
+      b5_visit_1, b5_visit_2, b5_visit_3, b5_visit_4, b5_comment
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
+      $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34,
+      $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
+      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66,
+      $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82,
+      $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98,
+      $99, $100, $101, $102, $103, $104, $105, $106, $107, $108, $109, $110, $111, $112,
+      $113, $114, $115, $116, $117, $118, $119, $120, $121, $122, $123, $124, $125, $126,
+      $127, $128, $129, $130, $131, $132, $133, $134, $135, $136, $137, $138, $139, $140,
+      $141, $142, $143, $144, $145, $146, $147, $148, $149, $150, $151, $152, $153, $154,
+      $155, $156, $157, $158, $159, $160, $161, $162, $163, $164, $165, $166, $167, $168,
+      $169, $170, $171, $172, $173, $174, $175, $176, $177, $178
+    )
+  `;
+  
+  return client.query(query, [
+    formId,
+    data.b1_visit_1 || null, data.b1_visit_2 || null, data.b1_visit_3 || null, data.b1_visit_4 || null, data.b1_comment || null,
+    data.amlodipine_5_10mg_v1 || null, data.amlodipine_5_10mg_v2 || null, data.amlodipine_5_10mg_v3 || null, data.amlodipine_5_10mg_v4 || null,
+    data.enalapril_2_5_10mg_v1 || null, data.enalapril_2_5_10mg_v2 || null, data.enalapril_2_5_10mg_v3 || null, data.enalapril_2_5_10mg_v4 || null,
+    data.losartan_25_50mg_v1 || null, data.losartan_25_50mg_v2 || null, data.losartan_25_50mg_v3 || null, data.losartan_25_50mg_v4 || null,
+    data.hydrochlorothiazide_12_5_25mg_v1 || null, data.hydrochlorothiazide_12_5_25mg_v2 || null, data.hydrochlorothiazide_12_5_25mg_v3 || null, data.hydrochlorothiazide_12_5_25mg_v4 || null,
+    data.chlorthalidone_6_25_12_5mg_v1 || null, data.chlorthalidone_6_25_12_5mg_v2 || null, data.chlorthalidone_6_25_12_5mg_v3 || null, data.chlorthalidone_6_25_12_5mg_v4 || null,
+    data.other_antihypertensives_v1 || null, data.other_antihypertensives_v2 || null, data.other_antihypertensives_v3 || null, data.other_antihypertensives_v4 || null,
+    data.atorvastatin_5mg_v1 || null, data.atorvastatin_5mg_v2 || null, data.atorvastatin_5mg_v3 || null, data.atorvastatin_5mg_v4 || null,
+    data.atorvastatin_10mg_v1 || null, data.atorvastatin_10mg_v2 || null, data.atorvastatin_10mg_v3 || null, data.atorvastatin_10mg_v4 || null,
+    data.atorvastatin_20mg_v1 || null, data.atorvastatin_20mg_v2 || null, data.atorvastatin_20mg_v3 || null, data.atorvastatin_20mg_v4 || null,
+    data.other_statins_v1 || null, data.other_statins_v2 || null, data.other_statins_v3 || null, data.other_statins_v4 || null,
+    data.metformin_500mg_v1 || null, data.metformin_500mg_v2 || null, data.metformin_500mg_v3 || null, data.metformin_500mg_v4 || null,
+    data.metformin_1000mg_v1 || null, data.metformin_1000mg_v2 || null, data.metformin_1000mg_v3 || null, data.metformin_1000mg_v4 || null,
+    data.glimepiride_1_2mg_v1 || null, data.glimepiride_1_2mg_v2 || null, data.glimepiride_1_2mg_v3 || null, data.glimepiride_1_2mg_v4 || null,
+    data.gliclazide_40_80mg_v1 || null, data.gliclazide_40_80mg_v2 || null, data.gliclazide_40_80mg_v3 || null, data.gliclazide_40_80mg_v4 || null,
+    data.glipizide_2_5_5mg_v1 || null, data.glipizide_2_5_5mg_v2 || null, data.glipizide_2_5_5mg_v3 || null, data.glipizide_2_5_5mg_v4 || null,
+    data.sitagliptin_50mg_v1 || null, data.sitagliptin_50mg_v2 || null, data.sitagliptin_50mg_v3 || null, data.sitagliptin_50mg_v4 || null,
+    data.pioglitazone_5mg_v1 || null, data.pioglitazone_5mg_v2 || null, data.pioglitazone_5mg_v3 || null, data.pioglitazone_5mg_v4 || null,
+    data.empagliflozin_10mg_v1 || null, data.empagliflozin_10mg_v2 || null, data.empagliflozin_10mg_v3 || null, data.empagliflozin_10mg_v4 || null,
+    data.insulin_soluble_inj_v1 || null, data.insulin_soluble_inj_v2 || null, data.insulin_soluble_inj_v3 || null, data.insulin_soluble_inj_v4 || null,
+    data.insulin_nph_inj_v1 || null, data.insulin_nph_inj_v2 || null, data.insulin_nph_inj_v3 || null, data.insulin_nph_inj_v4 || null,
+    data.other_hypoglycemic_agents_v1 || null, data.other_hypoglycemic_agents_v2 || null, data.other_hypoglycemic_agents_v3 || null, data.other_hypoglycemic_agents_v4 || null,
+    data.dextrose_25_solution_v1 || null, data.dextrose_25_solution_v2 || null, data.dextrose_25_solution_v3 || null, data.dextrose_25_solution_v4 || null,
+    data.aspirin_75mg_v1 || null, data.aspirin_75mg_v2 || null, data.aspirin_75mg_v3 || null, data.aspirin_75mg_v4 || null,
+    data.clopidogrel_75mg_v1 || null, data.clopidogrel_75mg_v2 || null, data.clopidogrel_75mg_v3 || null, data.clopidogrel_75mg_v4 || null,
+    data.metoprolol_succinate_12_5_25_50mg_v1 || null, data.metoprolol_succinate_12_5_25_50mg_v2 || null, data.metoprolol_succinate_12_5_25_50mg_v3 || null, data.metoprolol_succinate_12_5_25_50mg_v4 || null,
+    data.isosorbide_dinitrate_5mg_v1 || null, data.isosorbide_dinitrate_5mg_v2 || null, data.isosorbide_dinitrate_5mg_v3 || null, data.isosorbide_dinitrate_5mg_v4 || null,
+    data.other_drugs_v1 || null, data.other_drugs_v2 || null, data.other_drugs_v3 || null, data.other_drugs_v4 || null,
+    data.amoxicillin_clavulanic_potassium_625mg_v1 || null, data.amoxicillin_clavulanic_potassium_625mg_v2 || null, data.amoxicillin_clavulanic_potassium_625mg_v3 || null, data.amoxicillin_clavulanic_potassium_625mg_v4 || null,
+    data.azithromycin_500mg_v1 || null, data.azithromycin_500mg_v2 || null, data.azithromycin_500mg_v3 || null, data.azithromycin_500mg_v4 || null,
+    data.other_antibiotics_v1 || null, data.other_antibiotics_v2 || null, data.other_antibiotics_v3 || null, data.other_antibiotics_v4 || null,
+    data.salbutamol_dpi_v1 || null, data.salbutamol_dpi_v2 || null, data.salbutamol_dpi_v3 || null, data.salbutamol_dpi_v4 || null,
+    data.salbutamol_v1 || null, data.salbutamol_v2 || null, data.salbutamol_v3 || null, data.salbutamol_v4 || null,
+    data.ipratropium_v1 || null, data.ipratropium_v2 || null, data.ipratropium_v3 || null, data.ipratropium_v4 || null,
+    data.tiotropium_bromide_v1 || null, data.tiotropium_bromide_v2 || null, data.tiotropium_bromide_v3 || null, data.tiotropium_bromide_v4 || null,
+    data.formoterol_v1 || null, data.formoterol_v2 || null, data.formoterol_v3 || null, data.formoterol_v4 || null,
+    data.other_bronchodilators_v1 || null, data.other_bronchodilators_v2 || null, data.other_bronchodilators_v3 || null, data.other_bronchodilators_v4 || null,
+    data.prednisolone_5_10_20mg_v1 || null, data.prednisolone_5_10_20mg_v2 || null, data.prednisolone_5_10_20mg_v3 || null, data.prednisolone_5_10_20mg_v4 || null,
+    data.other_steroids_oral_v1 || null, data.other_steroids_oral_v2 || null, data.other_steroids_oral_v3 || null, data.other_steroids_oral_v4 || null,
+    data.b2_visit_1 || null, data.b2_visit_2 || null, data.b2_visit_3 || null, data.b2_visit_4 || null, data.b2_comment || null,
+    data.b3_visit_1 || null, data.b3_visit_2 || null, data.b3_visit_3 || null, data.b3_visit_4 || null, data.b3_comment || null,
+    data.b4_visit_1 || null, data.b4_visit_2 || null, data.b4_visit_3 || null, data.b4_visit_4 || null, data.b4_comment || null,
+    data.b5_visit_1 || null, data.b5_visit_2 || null, data.b5_visit_3 || null, data.b5_visit_4 || null, data.b5_comment || null
+  ]);
+}
+  
+async function insertEquipmentResponses(client, formId, data) {
+  if (!data) return;
+  
+  const query = `
+    INSERT INTO equipment_responses (
+      form_id, 
+      sphygmomanometer_v1, sphygmomanometer_v2, sphygmomanometer_v3, sphygmomanometer_v4,
+      weighing_scale_v1, weighing_scale_v2, weighing_scale_v3, weighing_scale_v4,
+      measuring_tape_v1, measuring_tape_v2, measuring_tape_v3, measuring_tape_v4,
+      peak_expiratory_flow_meter_v1, peak_expiratory_flow_meter_v2, peak_expiratory_flow_meter_v3, peak_expiratory_flow_meter_v4,
+      oxygen_v1, oxygen_v2, oxygen_v3, oxygen_v4,
+      oxygen_mask_v1, oxygen_mask_v2, oxygen_mask_v3, oxygen_mask_v4,
+      nebulizer_v1, nebulizer_v2, nebulizer_v3, nebulizer_v4,
+      pulse_oximetry_v1, pulse_oximetry_v2, pulse_oximetry_v3, pulse_oximetry_v4,
+      glucometer_v1, glucometer_v2, glucometer_v3, glucometer_v4,
+      glucometer_strips_v1, glucometer_strips_v2, glucometer_strips_v3, glucometer_strips_v4,
+      lancets_v1, lancets_v2, lancets_v3, lancets_v4,
+      urine_dipstick_v1, urine_dipstick_v2, urine_dipstick_v3, urine_dipstick_v4,
+      ecg_v1, ecg_v2, ecg_v3, ecg_v4,
+      other_equipment_v1, other_equipment_v2, other_equipment_v3, other_equipment_v4
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+      $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25,
+      $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37,
+      $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49,
+      $50, $51, $52, $53, $54, $55, $56, $57
+    )
+  `;
+  
+  return client.query(query, [
+    formId,
+    data.sphygmomanometer_v1 || null, data.sphygmomanometer_v2 || null, data.sphygmomanometer_v3 || null, data.sphygmomanometer_v4 || null,
+    data.weighing_scale_v1 || null, data.weighing_scale_v2 || null, data.weighing_scale_v3 || null, data.weighing_scale_v4 || null,
+    data.measuring_tape_v1 || null, data.measuring_tape_v2 || null, data.measuring_tape_v3 || null, data.measuring_tape_v4 || null,
+    data.peak_expiratory_flow_meter_v1 || null, data.peak_expiratory_flow_meter_v2 || null, data.peak_expiratory_flow_meter_v3 || null, data.peak_expiratory_flow_meter_v4 || null,
+    data.oxygen_v1 || null, data.oxygen_v2 || null, data.oxygen_v3 || null, data.oxygen_v4 || null,
+    data.oxygen_mask_v1 || null, data.oxygen_mask_v2 || null, data.oxygen_mask_v3 || null, data.oxygen_mask_v4 || null,
+    data.nebulizer_v1 || null, data.nebulizer_v2 || null, data.nebulizer_v3 || null, data.nebulizer_v4 || null,
+    data.pulse_oximetry_v1 || null, data.pulse_oximetry_v2 || null, data.pulse_oximetry_v3 || null, data.pulse_oximetry_v4 || null,
+    data.glucometer_v1 || null, data.glucometer_v2 || null, data.glucometer_v3 || null, data.glucometer_v4 || null,
+    data.glucometer_strips_v1 || null, data.glucometer_strips_v2 || null, data.glucometer_strips_v3 || null, data.glucometer_strips_v4 || null,
+    data.lancets_v1 || null, data.lancets_v2 || null, data.lancets_v3 || null, data.lancets_v4 || null,
+    data.urine_dipstick_v1 || null, data.urine_dipstick_v2 || null, data.urine_dipstick_v3 || null, data.urine_dipstick_v4 || null,
+    data.ecg_v1 || null, data.ecg_v2 || null, data.ecg_v3 || null, data.ecg_v4 || null,
+    data.other_equipment_v1 || null, data.other_equipment_v2 || null, data.other_equipment_v3 || null, data.other_equipment_v4 || null
+  ]);
+}
   
   async function insertMhdcManagementResponses(client, formId, data) {
     if (!data) return;
@@ -884,7 +911,7 @@ async function getLogisticsResponses(formId) {
         $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49,
         $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61,
         $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73,
-        $74, $75, $76, $77
+        $74, $75, $76, $77, $78
       )
     `;
     
