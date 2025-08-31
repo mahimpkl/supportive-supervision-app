@@ -18,7 +18,7 @@ class StorageService {
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'user';
   static const String _isFirstLaunchKey = 'is_first_launch';
-
+  static const String _lastSyncTimeKey = 'last_sync_time';
   // Token management
   static Future<void> saveTokens(String accessToken, String refreshToken) async {
     await Future.wait([
@@ -88,4 +88,31 @@ class StorageService {
     final user = await getUser();
     return accessToken != null && user != null;
   }
+
+  static Future<DateTime?> getLastSyncTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final timeString = prefs.getString(_lastSyncTimeKey);
+    return timeString != null ? DateTime.parse(timeString) : null;
+  }
+
+  static Future<void> setLastSyncTime(DateTime time) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastSyncTimeKey, time.toIso8601String());
+  }
 }
+
+// Extension for storing last sync time using SharedPreferences
+// extension SyncStorageExtension on StorageService {
+//   static const String _lastSyncTimeKey = 'last_sync_time';
+
+//   static Future<DateTime?> getLastSyncTime() async {
+//     final prefs = await SharedPreferences.getInstance();
+//     final timeString = prefs.getString(_lastSyncTimeKey);
+//     return timeString != null ? DateTime.parse(timeString) : null;
+//   }
+
+//   static Future<void> setLastSyncTime(DateTime time) async {
+//     final prefs = await SharedPreferences.getInstance();
+//     await prefs.setString(_lastSyncTimeKey, time.toIso8601String());
+//   }
+// }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'storage_service.dart';
 
 class AuthInterceptor extends Interceptor {
@@ -16,56 +17,112 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // Skip token refresh for auth endpoints to avoid loops
+    if (err.requestOptions.path.contains('/auth/')) {
+      return super.onError(err, handler);
+    }
+
+    // Handle 401 Unauthorized errors
     if (err.response?.statusCode == 401) {
-      // Token expired, try to refresh
-      final refreshSuccess = await _refreshToken();
+      debugPrint('🔑 Token expired, attempting to refresh...');
       
-      if (refreshSuccess) {
-        // Retry the request with new token
-        final accessToken = await StorageService.getAccessToken();
-        final options = err.requestOptions;
-        options.headers['Authorization'] = 'Bearer $accessToken';
+      try {
+        final refreshSuccess = await _refreshToken();
         
-        try {
+        if (refreshSuccess) {
+          debugPrint('✅ Token refresh successful, retrying original request');
+          
+          // Get the new access token
+          final accessToken = await StorageService.getAccessToken();
+          if (accessToken == null) {
+            debugPrint('❌ No access token after refresh');
+            await _handleAuthFailure();
+            return super.onError(err, handler);
+          }
+          
+          // Update the request with new token
+          final options = err.requestOptions;
+          options.headers['Authorization'] = 'Bearer $accessToken';
+          
+          // Create a new Dio instance to avoid circular references
           final dio = Dio();
-          final response = await dio.fetch(options);
-          handler.resolve(response);
-          return;
-        } catch (e) {
-          // If retry fails, proceed with original error
+          
+          // Copy original request options
+          final response = await dio.fetch<dynamic>(
+            options..headers.remove(Headers.contentLengthHeader),
+          );
+          
+          // Resolve with the successful response
+          return handler.resolve(response);
+        } else {
+          debugPrint('❌ Token refresh failed');
+          await _handleAuthFailure();
         }
-      } else {
-        // Refresh failed, clear storage and redirect to login
-        await StorageService.clearAll();
+      } catch (e) {
+        debugPrint('❌ Error during token refresh: $e');
+        await _handleAuthFailure();
       }
     }
     
-    super.onError(err, handler);
+    return super.onError(err, handler);
+  }
+  
+  Future<void> _handleAuthFailure() async {
+    // Clear tokens and user data
+    await StorageService.clearAll();
+    
+    // You might want to add navigation to login screen here
+    // For example using a global navigator key or a service
+    debugPrint('⚠️ Authentication required. Please log in again.');
   }
 
   Future<bool> _refreshToken() async {
     try {
       final refreshToken = await StorageService.getRefreshToken();
-      if (refreshToken == null) return false;
+      if (refreshToken == null) {
+        debugPrint('❌ No refresh token available');
+        return false;
+      }
 
+      debugPrint('🔄 Refreshing access token...');
+      
       final dio = Dio();
-      final response = await dio.post(
-        'http://localhost:3000/api/auth/refresh', // Change to your API URL
+      final response = await dio.post<Map<String, dynamic>>(
+        'http://192.168.1.69:3000/api/auth/refresh',
         data: {'refreshToken': refreshToken},
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data!;
+        
+        if (data['accessToken'] == null || data['refreshToken'] == null) {
+          debugPrint('❌ Invalid token response format');
+          return false;
+        }
+        
         await StorageService.saveTokens(
           data['accessToken'],
           data['refreshToken'],
         );
+        
+        debugPrint('✅ Successfully refreshed tokens');
         return true;
+      } else {
+        debugPrint('❌ Token refresh failed with status: ${response.statusCode}');
+        return false;
       }
     } catch (e) {
-      print('Token refresh failed: $e');
+      debugPrint('❌ Error refreshing token: $e');
+      if (e is DioException) {
+        debugPrint('Error details: ${e.response?.data}');
+      }
+      return false;
     }
-    
-    return false;
   }
 }

@@ -53,363 +53,19 @@ async function generateFileName(req) {
   return `${filenameParts.join('_')}.xlsx`;
 }
 
-// Add comprehensive medicine inventory sheet
-function addMedicineInventorySheet(workbook, forms) {
-  const medicineSheet = workbook.addWorksheet('Medicine Inventory');
+// Helper function to create a safe worksheet name
+function createSafeWorksheetName(facilityName, maxLength = 31) {
+  // Remove invalid characters and limit length for Excel worksheet names
+  let safeName = facilityName
+    .replace(/[\\\/\?\*\[\]]/g, '') // Remove invalid characters
+    .replace(/:/g, '-') // Replace colon with dash
+    .substring(0, maxLength);
   
-  const headers = ['Form ID', 'Facility', 'Province', 'Medicine', 'Visit 1', 'Visit 2', 'Visit 3', 'Visit 4', 'Availability %'];
-  medicineSheet.addRow(headers);
-  
-  const headerRow = medicineSheet.getRow(1);
-  headerRow.font = { bold: true };
-  headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFE6E6FA' }
-  };
-  
-  const medicines = [
-    { key: 'amlodipine_5_10mg', name: 'Amlodipine 5/10mg' },
-    { key: 'enalapril_2_5_10mg', name: 'Enalapril 2.5/10mg' },
-    { key: 'losartan_25_50mg', name: 'Losartan 25/50mg' },
-    { key: 'hydrochlorothiazide_12_5_25mg', name: 'Hydrochlorothiazide 12.5/25mg' },
-    { key: 'chlorthalidone_6_25_12_5mg', name: 'Chlorthalidone 6.25/12.5mg' },
-    { key: 'other_antihypertensives', name: 'Other Antihypertensives' },
-    { key: 'atorvastatin_5mg', name: 'Atorvastatin 5mg' },
-    { key: 'atorvastatin_10mg', name: 'Atorvastatin 10mg' },
-    { key: 'atorvastatin_20mg', name: 'Atorvastatin 20mg' },
-    { key: 'other_statins', name: 'Other Statins' },
-    { key: 'metformin_500mg', name: 'Metformin 500mg' },
-    { key: 'metformin_1000mg', name: 'Metformin 1000mg' },
-    { key: 'glimepiride_1_2mg', name: 'Glimepiride 1/2mg' },
-    { key: 'gliclazide_40_80mg', name: 'Gliclazide 40/80mg' },
-    { key: 'glipizide_2_5_5mg', name: 'Glipizide 2.5/5mg' },
-    { key: 'sitagliptin_50mg', name: 'Sitagliptin 50mg' },
-    { key: 'pioglitazone_5mg', name: 'Pioglitazone 5mg' },
-    { key: 'empagliflozin_10mg', name: 'Empagliflozin 10mg' },
-    { key: 'insulin_soluble_inj', name: 'Insulin Soluble Injection' },
-    { key: 'insulin_nph_inj', name: 'Insulin NPH Injection' },
-    { key: 'other_hypoglycemic_agents', name: 'Other Hypoglycemic Agents' },
-    { key: 'dextrose_25_solution', name: 'Dextrose 25% Solution' },
-    { key: 'aspirin_75mg', name: 'Aspirin 75mg' },
-    { key: 'clopidogrel_75mg', name: 'Clopidogrel 75mg' },
-    { key: 'metoprolol_succinate_12_5_25_50mg', name: 'Metoprolol Succinate 12.5/25/50mg' },
-    { key: 'isosorbide_dinitrate_5mg', name: 'Isosorbide Dinitrate 5mg' },
-    { key: 'other_drugs', name: 'Other Drugs' },
-    { key: 'amoxicillin_clavulanic_potassium_625mg', name: 'Amoxicillin Clavulanic Potassium 625mg' },
-    { key: 'azithromycin_500mg', name: 'Azithromycin 500mg' },
-    { key: 'other_antibiotics', name: 'Other Antibiotics' },
-    { key: 'salbutamol_dpi', name: 'Salbutamol DPI' },
-    { key: 'salbutamol', name: 'Salbutamol' },
-    { key: 'ipratropium', name: 'Ipratropium' },
-    { key: 'tiotropium_bromide', name: 'Tiotropium Bromide' },
-    { key: 'formoterol', name: 'Formoterol' },
-    { key: 'other_bronchodilators', name: 'Other Bronchodilators' },
-    { key: 'prednisolone_5_10_20mg', name: 'Prednisolone 5/10/20mg' },
-    { key: 'other_steroids_oral', name: 'Other Oral Steroids' }
-  ];
-  
-  forms.forEach(form => {
-    if (form.logistics) {
-      medicines.forEach(medicine => {
-        const v1 = form.logistics[`${medicine.key}_v1`];
-        const v2 = form.logistics[`${medicine.key}_v2`];
-        const v3 = form.logistics[`${medicine.key}_v3`];
-        const v4 = form.logistics[`${medicine.key}_v4`];
-        
-        const visits = [v1, v2, v3, v4].filter(v => v === 'Y' || v === 'N');
-        const available = visits.filter(v => v === 'Y').length;
-        const availabilityPercent = visits.length > 0 ? ((available / visits.length) * 100).toFixed(1) : 'N/A';
-        
-        if (visits.length > 0) {
-          medicineSheet.addRow([
-            form.id,
-            form.health_facility_name,
-            form.province,
-            medicine.name,
-            getYNValue(v1),
-            getYNValue(v2),
-            getYNValue(v3),
-            getYNValue(v4),
-            `${availabilityPercent}%`
-          ]);
-        }
-      });
-    }
-  });
+  return safeName || 'Facility';
 }
 
-// Add comprehensive equipment tracking sheet
-function addEquipmentTrackingSheet(workbook, forms) {
-  const equipmentSheet = workbook.addWorksheet('Equipment Tracking');
-  
-  const headers = ['Form ID', 'Facility', 'Province', 'Equipment', 'Visit 1', 'Visit 2', 'Visit 3', 'Visit 4', 'Functionality %'];
-  equipmentSheet.addRow(headers);
-  
-  const headerRow = equipmentSheet.getRow(1);
-  headerRow.font = { bold: true };
-  headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFFFD700' }
-  };
-  
-  const equipment = [
-    { key: 'sphygmomanometer', name: 'Sphygmomanometer' },
-    { key: 'weighing_scale', name: 'Weighing Scale' },
-    { key: 'measuring_tape', name: 'Measuring Tape' },
-    { key: 'peak_expiratory_flow_meter', name: 'Peak Expiratory Flow Meter' },
-    { key: 'oxygen', name: 'Oxygen' },
-    { key: 'oxygen_mask', name: 'Oxygen Mask' },
-    { key: 'nebulizer', name: 'Nebulizer' },
-    { key: 'pulse_oximetry', name: 'Pulse Oximetry' },
-    { key: 'glucometer', name: 'Glucometer' },
-    { key: 'glucometer_strips', name: 'Glucometer Strips' },
-    { key: 'lancets', name: 'Lancets' },
-    { key: 'urine_dipstick', name: 'Urine Dipstick' },
-    { key: 'ecg', name: 'ECG Machine' },
-    { key: 'other_equipment', name: 'Other Equipment' }
-  ];
-  
-  forms.forEach(form => {
-    if (form.equipment) {
-      equipment.forEach(equip => {
-        const v1 = form.equipment[`${equip.key}_v1`];
-        const v2 = form.equipment[`${equip.key}_v2`];
-        const v3 = form.equipment[`${equip.key}_v3`];
-        const v4 = form.equipment[`${equip.key}_v4`];
-        
-        const visits = [v1, v2, v3, v4].filter(v => v === 'Y' || v === 'N');
-        const functional = visits.filter(v => v === 'Y').length;
-        const functionalityPercent = visits.length > 0 ? ((functional / visits.length) * 100).toFixed(1) : 'N/A';
-        
-        if (visits.length > 0) {
-          equipmentSheet.addRow([
-            form.id,
-            form.health_facility_name,
-            form.province,
-            equip.name,
-            getYNValue(v1),
-            getYNValue(v2),
-            getYNValue(v3),
-            getYNValue(v4),
-            `${functionalityPercent}%`
-          ]);
-        }
-      });
-    }
-  });
-}
-
-// Add detailed staff training matrix
-function addStaffTrainingSheet(workbook, forms) {
-  const staffSheet = workbook.addWorksheet('Staff Training Matrix');
-  
-  const headers = [
-    'Form ID', 'Facility', 'Province',
-    'Staff Category', 'Total Staff', 'MHDC Trained', 'FEN Trained', 'Other NCD Trained',
-    'MHDC %', 'FEN %', 'Other NCD %'
-  ];
-  staffSheet.addRow(headers);
-  
-  const headerRow = staffSheet.getRow(1);
-  headerRow.font = { bold: true };
-  headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FF90EE90' }
-  };
-  
-  const staffCategories = [
-    { key: 'ha', name: 'Health Assistant (HA)' },
-    { key: 'sr_ahw', name: 'Senior AHW' },
-    { key: 'ahw', name: 'AHW' },
-    { key: 'sr_anm', name: 'Senior ANM' },
-    { key: 'anm', name: 'ANM' },
-    { key: 'others', name: 'Others' }
-  ];
-  
-  forms.forEach(form => {
-    if (form.serviceDelivery) {
-      staffCategories.forEach(category => {
-        const total = form.serviceDelivery[`${category.key}_total_staff`] || 0;
-        const mhdc = form.serviceDelivery[`${category.key}_mhdc_trained`] || 0;
-        const fen = form.serviceDelivery[`${category.key}_fen_trained`] || 0;
-        const other = form.serviceDelivery[`${category.key}_other_ncd_trained`] || 0;
-        
-        const mhdcPercent = total > 0 ? ((mhdc / total) * 100).toFixed(1) : '0';
-        const fenPercent = total > 0 ? ((fen / total) * 100).toFixed(1) : '0';
-        const otherPercent = total > 0 ? ((other / total) * 100).toFixed(1) : '0';
-        
-        if (total > 0) {
-          staffSheet.addRow([
-            form.id,
-            form.health_facility_name,
-            form.province,
-            category.name,
-            total,
-            mhdc,
-            fen,
-            other,
-            `${mhdcPercent}%`,
-            `${fenPercent}%`,
-            `${otherPercent}%`
-          ]);
-        }
-      });
-    }
-  });
-}
-
-// Add detailed service standards sheet
-function addServiceStandardsDetailSheet(workbook, forms) {
-  const serviceSheet = workbook.addWorksheet('Service Standards Detail');
-  
-  const headers = ['Form ID', 'Facility', 'Province', 'Service Standard', 'Visit 1', 'Visit 2', 'Visit 3', 'Visit 4', 'Compliance %'];
-  serviceSheet.addRow(headers);
-  
-  const headerRow = serviceSheet.getRow(1);
-  headerRow.font = { bold: true };
-  headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFADD8E6' }
-  };
-  
-  const serviceStandards = [
-    { key: 'c2_blood_pressure', name: 'Blood Pressure Measurement' },
-    { key: 'c2_blood_sugar', name: 'Blood Sugar Testing' },
-    { key: 'c2_bmi_measurement', name: 'BMI Measurement' },
-    { key: 'c2_waist_circumference', name: 'Waist Circumference Measurement' },
-    { key: 'c2_cvd_risk_estimation', name: 'CVD Risk Estimation' },
-    { key: 'c2_urine_protein_measurement', name: 'Urine Protein Measurement' },
-    { key: 'c2_peak_expiratory_flow_rate', name: 'Peak Expiratory Flow Rate' },
-    { key: 'c2_egfr_calculation', name: 'eGFR Calculation' },
-    { key: 'c2_brief_intervention', name: 'Brief Intervention' },
-    { key: 'c2_foot_examination', name: 'Foot Examination' },
-    { key: 'c2_oral_examination', name: 'Oral Examination' },
-    { key: 'c2_eye_examination', name: 'Eye Examination' },
-    { key: 'c2_health_education', name: 'Health Education' }
-  ];
-  
-  forms.forEach(form => {
-    if (form.serviceStandards) {
-      serviceStandards.forEach(service => {
-        const v1 = form.serviceStandards[`${service.key}_v1`];
-        const v2 = form.serviceStandards[`${service.key}_v2`];
-        const v3 = form.serviceStandards[`${service.key}_v3`];
-        const v4 = form.serviceStandards[`${service.key}_v4`];
-        
-        const visits = [v1, v2, v3, v4].filter(v => v === 'Y' || v === 'N');
-        const compliant = visits.filter(v => v === 'Y').length;
-        const compliancePercent = visits.length > 0 ? ((compliant / visits.length) * 100).toFixed(1) : 'N/A';
-        
-        if (visits.length > 0) {
-          serviceSheet.addRow([
-            form.id,
-            form.health_facility_name,
-            form.province,
-            service.name,
-            getYNValue(v1),
-            getYNValue(v2),
-            getYNValue(v3),
-            getYNValue(v4),
-            `${compliancePercent}%`
-          ]);
-        }
-      });
-    }
-  });
-}
-
-// Add visit progression analysis
-function addVisitProgressionSheet(workbook, forms) {
-  const progressSheet = workbook.addWorksheet('Visit Progression');
-  
-  const headers = [
-    'Form ID', 'Facility', 'Province',
-    'Visit 1 Date', 'Visit 2 Date', 'Visit 3 Date', 'Visit 4 Date',
-    'Total Visits', 'Days V1-V2', 'Days V2-V3', 'Days V3-V4',
-    'Visit 1 Recommendations', 'Visit 2 Recommendations', 'Visit 3 Recommendations', 'Visit 4 Recommendations'
-  ];
-  progressSheet.addRow(headers);
-  
-  const headerRow = progressSheet.getRow(1);
-  headerRow.font = { bold: true };
-  headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFFFA500' }
-  };
-  
-  forms.forEach(form => {
-    const v1Date = form.visit_1_date ? new Date(form.visit_1_date) : null;
-    const v2Date = form.visit_2_date ? new Date(form.visit_2_date) : null;
-    const v3Date = form.visit_3_date ? new Date(form.visit_3_date) : null;
-    const v4Date = form.visit_4_date ? new Date(form.visit_4_date) : null;
-    
-    const totalVisits = [v1Date, v2Date, v3Date, v4Date].filter(d => d !== null).length;
-    
-    const daysBetween = (date1, date2) => {
-      if (!date1 || !date2) return 'N/A';
-      return Math.floor((date2 - date1) / (1000 * 60 * 60 * 24));
-    };
-    
-    progressSheet.addRow([
-      form.id,
-      form.health_facility_name,
-      form.province,
-      formatDate(form.visit_1_date),
-      formatDate(form.visit_2_date),
-      formatDate(form.visit_3_date),
-      formatDate(form.visit_4_date),
-      totalVisits,
-      daysBetween(v1Date, v2Date),
-      daysBetween(v2Date, v3Date),
-      daysBetween(v3Date, v4Date),
-      form.recommendations_visit_1 || '',
-      form.recommendations_visit_2 || '',
-      form.recommendations_visit_3 || '',
-      form.recommendations_visit_4 || ''
-    ]);
-  });
-}
-
-// Enhanced main export function
-async function enhanceExcelWithDetailedSheets(workbook, forms) {
-  console.log(`Enhancing Excel with detailed sheets for ${forms.length} forms`);
-  
-  addMedicineInventorySheet(workbook, forms);
-  addEquipmentTrackingSheet(workbook, forms);
-  addStaffTrainingSheet(workbook, forms);
-  addServiceStandardsDetailSheet(workbook, forms);
-  addVisitProgressionSheet(workbook, forms);
-  
-  // Add analytics sheet
-  const analyticsSheet = workbook.addWorksheet('Analytics & Trends');
-  
-  const totalForms = forms.length;
-  const facilitiesWithAllVisits = forms.filter(f => f.visit_1_date && f.visit_2_date && f.visit_3_date && f.visit_4_date).length;
-  const averageVisitsPerFacility = forms.reduce((sum, f) => {
-    const visits = [f.visit_1_date, f.visit_2_date, f.visit_3_date, f.visit_4_date].filter(d => d).length;
-    return sum + visits;
-  }, 0) / totalForms;
-  
-  analyticsSheet.addRow(['Export Analytics']);
-  analyticsSheet.addRow(['']);
-  analyticsSheet.addRow(['Total Forms Exported', totalForms]);
-  analyticsSheet.addRow(['Facilities with Complete 4 Visits', facilitiesWithAllVisits]);
-  analyticsSheet.addRow(['Average Visits per Facility', averageVisitsPerFacility.toFixed(1)]);
-  analyticsSheet.addRow(['Export Generated', new Date().toLocaleString()]);
-  analyticsSheet.addRow(['']);
-  
-  // Add filter summary
-  analyticsSheet.addRow(['Applied Filters:']);
-  analyticsSheet.addRow(['(See filename for filter details)']);
-}
-
-// Export all forms to Excel (Admin only)
-router.get('/excel', requireAdmin, async (req, res, next) => {
+// Main export handler function - RESTRUCTURED for facility-based worksheets
+async function handleExportRequest(req, res, next) {
   try {
     const { startDate, endDate, userId, province, district } = req.query;
 
@@ -419,13 +75,13 @@ router.get('/excel', requireAdmin, async (req, res, next) => {
     let paramIndex = 1;
 
     if (startDate) {
-      whereConditions.push(`sf.form_created_at >= $${paramIndex}`);
+      whereConditions.push(`sf.created_at >= $${paramIndex}`);
       queryParams.push(startDate);
       paramIndex++;
     }
 
     if (endDate) {
-      whereConditions.push(`sf.form_created_at <= $${paramIndex}`);
+      whereConditions.push(`sf.created_at <= $${paramIndex}`);
       queryParams.push(endDate);
       paramIndex++;
     }
@@ -451,20 +107,43 @@ router.get('/excel', requireAdmin, async (req, res, next) => {
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     console.log('Export filters applied:', { startDate, endDate, userId, province, district });
-    console.log('WHERE clause:', whereClause);
-    console.log('Query params:', queryParams);
 
-    // Get all forms with user information
+    // Get all forms with visits using the CORRECTED visit-based query
     const formsQuery = `
       SELECT 
-        sf.*,
+        sf.id,
+        sf.health_facility_name,
+        sf.province,
+        sf.district,
+        sf.created_at,
+        sf.updated_at,
+        sf.sync_status,
         u.username,
         u.full_name as doctor_name,
-        u.email as doctor_email
+        u.email as doctor_email,
+        JSON_AGG(
+          CASE 
+            WHEN sv.id IS NOT NULL THEN
+              JSON_BUILD_OBJECT(
+                'visit_id', sv.id,
+                'visit_number', sv.visit_number,
+                'visit_date', sv.visit_date,
+                'recommendations', sv.recommendations,
+                'actions_agreed', sv.actions_agreed,
+                'supervisor_signature', sv.supervisor_signature,
+                'facility_representative_signature', sv.facility_representative_signature,
+                'sync_status', sv.sync_status
+              )
+            ELSE NULL
+          END
+          ORDER BY sv.visit_number
+        ) FILTER (WHERE sv.id IS NOT NULL) as visits
       FROM supervision_forms sf
       JOIN users u ON sf.user_id = u.id
+      LEFT JOIN supervision_visits sv ON sf.id = sv.form_id
       ${whereClause}
-      ORDER BY sf.form_created_at DESC
+      GROUP BY sf.id, u.username, u.full_name, u.email
+      ORDER BY sf.created_at DESC
     `;
 
     const formsResult = await db.query(formsQuery, queryParams);
@@ -484,274 +163,36 @@ router.get('/excel', requireAdmin, async (req, res, next) => {
     workbook.creator = 'Supervision App';
     workbook.created = new Date();
 
-    // Create Table of Contents sheet
-    const tocSheet = workbook.addWorksheet('Table of Contents');
-    tocSheet.columns = [
-      { header: 'Form ID', key: 'id', width: 15 },
-      { header: 'Facility Name', key: 'facility', width: 30 },
-      { header: 'Province', key: 'province', width: 20 },
-      { header: 'Visit Dates', key: 'visits', width: 40 },
-      { header: 'Go to Details', key: 'link', width: 20 }
-    ];
+    // Create overview sheet first
+    await createOverviewSheet(workbook, forms);
 
-    // Style TOC headers
-    tocSheet.getRow(1).font = { bold: true };
-    tocSheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFE6E6FA' }
-    };
-
-    // Add export info to TOC
-    const exportInfo = `Export: ${forms.length} forms | Filters: ${JSON.stringify(req.query)} | Generated: ${new Date().toLocaleString()}`;
-    tocSheet.addRow(['']);
-    tocSheet.addRow(['Export Info:', exportInfo]);
-    tocSheet.addRow(['']);
-
-    // Add TOC entries
-    forms.forEach(form => {
-      const visitDates = [
-        form.visit_1_date ? 'V1' : '',
-        form.visit_2_date ? 'V2' : '',
-        form.visit_3_date ? 'V3' : '',
-        form.visit_4_date ? 'V4' : ''
-      ].filter(v => v).join(', ');
-      
-      const tocRow = tocSheet.addRow({
-        id: form.id,
-        facility: form.health_facility_name,
-        province: form.province,
-        visits: visitDates,
-        link: `=HYPERLINK("#Form ${form.id} Details!A1", "📋 View Details")`
-      });
-      
-      const linkCell = tocRow.getCell(5);
-      linkCell.font = {
-        color: { argb: 'FF0000FF' },
-        underline: true
-      };
-    });
-    
-    // Add navigation links in TOC
-    const summaryLinkRow = tocSheet.addRow(['']);
-    const summaryLinkCell = summaryLinkRow.getCell(1);
-    summaryLinkCell.value = {
-      text: '📊 Go to Summary Sheet',
-      hyperlink: '#Supervision Forms!A1',
-      tooltip: 'Click to view the main summary sheet'
-    };
-    summaryLinkCell.font = {
-      color: { argb: 'FF008000' },
-      underline: true,
-      bold: true
-    };
-
-    // Main forms sheet
-    const formsSheet = workbook.addWorksheet('Supervision Forms');
-    
-    formsSheet.columns = [
-      { header: 'Form ID', key: 'id', width: 10 },
-      { header: 'Health Facility', key: 'facility', width: 30 },
-      { header: 'Province', key: 'province', width: 20 },
-      { header: 'District', key: 'district', width: 20 },
-      { header: 'Doctor Name', key: 'doctor', width: 25 },
-      { header: 'Doctor Email', key: 'email', width: 30 },
-      { header: 'Visit 1 Date', key: 'visit1', width: 15 },
-      { header: 'Visit 2 Date', key: 'visit2', width: 15 },
-      { header: 'Visit 3 Date', key: 'visit3', width: 15 },
-      { header: 'Visit 4 Date', key: 'visit4', width: 15 },
-      { header: 'Form Created', key: 'created', width: 20 },
-      { header: 'Sync Status', key: 'status', width: 15 },
-      { header: 'Recommendations Visit 1', key: 'rec1', width: 40 },
-      { header: 'Recommendations Visit 2', key: 'rec2', width: 40 },
-      { header: 'Recommendations Visit 3', key: 'rec3', width: 40 },
-      { header: 'Recommendations Visit 4', key: 'rec4', width: 40 }
-    ];
-
-    formsSheet.getRow(1).font = { bold: true };
-    formsSheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFE6E6FA' }
-    };
-
-    // Collect detailed form data
-    const formsWithDetails = [];
+    // Group forms by facility
+    const facilitiesByName = {};
     for (const form of forms) {
-      const formId = form.id;
-      
-      const [
-        adminMgmt,
-        logistics,
-        equipment,
-        mhdcMgmt,
-        serviceDelivery,
-        serviceStandards,
-        healthInfo,
-        integration,
-        overallObs
-      ] = await Promise.all([
-        getAdminManagementResponses(formId),
-        getLogisticsResponses(formId),
-        getEquipmentResponses(formId),
-        getMhdcManagementResponses(formId),
-        getServiceDeliveryResponses(formId),
-        getServiceStandardsResponses(formId),
-        getHealthInformationResponses(formId),
-        getIntegrationResponses(formId),
-        getOverallObservationsResponses(formId)
-      ]);
-
-      const completeForm = {
-        ...form,
-        adminManagement: adminMgmt,
-        logistics: logistics,
-        equipment: equipment,
-        mhdcManagement: mhdcMgmt,
-        serviceDelivery: serviceDelivery,
-        serviceStandards: serviceStandards,
-        healthInformation: healthInfo,
-        integration: integration,
-        overallObservations: overallObs
-      };
-      
-      formsWithDetails.push(completeForm);
-
-      // Add to main summary sheet
-      const row = formsSheet.addRow({
-        id: `Form ${form.id}`,
-        facility: form.health_facility_name,
-        province: form.province,
-        district: form.district,
-        doctor: form.doctor_name,
-        email: form.doctor_email,
-        visit1: formatDate(form.visit_1_date),
-        visit2: formatDate(form.visit_2_date),
-        visit3: formatDate(form.visit_3_date),
-        visit4: formatDate(form.visit_4_date),
-        created: new Date(form.form_created_at).toLocaleString(),
-        status: form.sync_status,
-        rec1: form.recommendations_visit_1 || '',
-        rec2: form.recommendations_visit_2 || '',
-        rec3: form.recommendations_visit_3 || '',
-        rec4: form.recommendations_visit_4 || ''
-      });
-      
-      const formIdCell = row.getCell(1);
-      formIdCell.value = {
-        text: `Form ${form.id}`,
-        hyperlink: `#Form ${form.id} Details!A1`,
-        tooltip: `Click to view detailed data for Form ${form.id}`
-      };
-      
-      formIdCell.font = {
-        color: { argb: 'FF0000FF' },
-        underline: true,
-        bold: true
-      };
-
-      // Create detailed sheet for this form
-      const detailSheet = workbook.addWorksheet(`Form ${formId} Details`);
-      
-      const navRow = detailSheet.addRow(['']);
-      const backLinkCell = navRow.getCell(1);
-      backLinkCell.value = {
-        text: 'Back to Summary',
-        hyperlink: '#Supervision Forms!A1',
-        tooltip: 'Click to return to the main summary sheet'
-      };
-      backLinkCell.font = {
-        color: { argb: 'FF0000FF' },
-        underline: true,
-        bold: true
-      };
-      
-      const tocLinkCell = navRow.getCell(2);
-      tocLinkCell.value = {
-        text: 'Table of Contents',
-        hyperlink: '#Table of Contents!A1',
-        tooltip: 'Click to go to Table of Contents'
-      };
-      tocLinkCell.font = {
-        color: { argb: 'FF008000' },
-        underline: true,
-        bold: true
-      };
-      
-      const headerData = [
-        ['Form ID', formId],
-        ['Health Facility', form.health_facility_name],
-        ['Province', form.province],
-        ['District', form.district],
-        ['Doctor', form.doctor_name],
-        ['Created Date', new Date(form.form_created_at).toLocaleString()],
-        ['Sync Status', form.sync_status],
-        ['']
-      ];
-
-      headerData.forEach(row => {
-        const addedRow = detailSheet.addRow(row);
-        if (row[0] && row[1]) {
-          addedRow.getCell(1).font = { bold: true };
-        }
-      });
-
-      addSectionToSheet(detailSheet, 'ADMINISTRATION AND MANAGEMENT', adminMgmt, [
-        { key: 'a1', label: 'Health Facility Operation Committee' },
-        { key: 'a2', label: 'Committee discusses NCD service provisions' },
-        { key: 'a3', label: 'Health facility discusses NCD quarterly' }
-      ]);
-
-      addSectionToSheet(detailSheet, 'LOGISTICS', logistics, [
-        { key: 'b1', label: 'Essential NCD medicines available' },
-        { key: 'b2', label: 'Blood glucometer functioning' },
-        { key: 'b3', label: 'Urine protein strips used' },
-        { key: 'b4', label: 'Urine ketone strips used' },
-        { key: 'b5', label: 'Essential equipment available' }
-      ]);
-
-      addSectionToSheet(detailSheet, 'MHDC MANAGEMENT', mhdcMgmt, [
-        { key: 'b6', label: 'MHDC NCD management leaflets available' },
-        { key: 'b7', label: 'NCD awareness materials available' },
-        { key: 'b8', label: 'NCD register availability' },
-        { key: 'b9', label: 'WHO-ISH CVD Risk Prediction Chart available' },
-        { key: 'b10', label: 'WHO-ISH CVD Risk Chart in use' }
-      ]);
-
-      addSectionToSheet(detailSheet, 'SERVICE STANDARDS', serviceStandards, [
-        { key: 'c3', label: 'Examination room confidentiality' },
-        { key: 'c4', label: 'Home-bound NCD services' },
-        { key: 'c5', label: 'Community-based NCD care' },
-        { key: 'c6', label: 'School-based NCD prevention' },
-        { key: 'c7', label: 'Patient tracking mechanism' }
-      ]);
-
-      addSectionToSheet(detailSheet, 'HEALTH INFORMATION', healthInfo, [
-        { key: 'd1', label: 'NCD OPD register updated' },
-        { key: 'd2', label: 'NCD dashboard updated' },
-        { key: 'd3', label: 'Monthly reporting' },
-        { key: 'd4', label: 'Number of people seeking NCD services' },
-        { key: 'd5', label: 'Dedicated healthcare worker for NCD' }
-      ]);
-
-      addSectionToSheet(detailSheet, 'INTEGRATION', integration, [
-        { key: 'e1', label: 'Health workers aware of PEN programme' },
-        { key: 'e2', label: 'Health education provided' },
-        { key: 'e3', label: 'Screening for raised blood pressure/sugar' }
-      ]);
-      
-      addSectionToSheet(detailSheet, 'OVERALL OBSERVATIONS', overallObs, [
-        { key: 'recommendations', label: 'Summary of Recommendations' }
-      ]);
+      const facilityKey = `${form.health_facility_name}_${form.province}_${form.district}`;
+      if (!facilitiesByName[facilityKey]) {
+        facilitiesByName[facilityKey] = {
+          facilityName: form.health_facility_name,
+          province: form.province,
+          district: form.district,
+          forms: []
+        };
+      }
+      facilitiesByName[facilityKey].forms.push(form);
     }
 
-    // Add enhanced detailed sheets
-    await enhanceExcelWithDetailedSheets(workbook, formsWithDetails);
+    // Create individual worksheets for each facility
+    for (const [facilityKey, facilityData] of Object.entries(facilitiesByName)) {
+      await createFacilityWorksheet(workbook, facilityData);
+    }
+
+    // Add overall analytics sheet
+    await addOverallAnalyticsSheet(workbook, forms, Object.values(facilitiesByName));
 
     // Generate dynamic filename
     const fileName = await generateFileName(req);
     
-    console.log(`Generating export: ${fileName} for ${forms.length} forms`);
+    console.log(`Generating facility-based export: ${fileName} for ${forms.length} forms across ${Object.keys(facilitiesByName).length} facilities`);
     
     res.setHeader(
       'Content-Type',
@@ -766,7 +207,811 @@ router.get('/excel', requireAdmin, async (req, res, next) => {
     console.error('Export error:', error);
     next(error);
   }
-});
+}
+
+// Create overview sheet with all facilities summary
+async function createOverviewSheet(workbook, forms) {
+  const overviewSheet = workbook.addWorksheet('Facilities Overview');
+  
+  overviewSheet.columns = [
+    { header: 'Facility Name', key: 'facility', width: 35 },
+    { header: 'Province', key: 'province', width: 20 },
+    { header: 'District', key: 'district', width: 20 },
+    { header: 'Doctor Name', key: 'doctor', width: 25 },
+    { header: 'Form Created', key: 'created', width: 20 },
+    { header: 'Total Visits', key: 'visit_count', width: 15 },
+    { header: 'Visit Numbers', key: 'visit_numbers', width: 20 },
+    { header: 'Completion %', key: 'completion', width: 15 },
+    { header: 'Last Visit Date', key: 'last_visit', width: 20 },
+    { header: 'Sync Status', key: 'status', width: 15 }
+  ];
+
+  // Style headers
+  overviewSheet.getRow(1).font = { bold: true };
+  overviewSheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE6E6FA' }
+  };
+
+  // Add forms data to overview
+  forms.forEach(form => {
+    const visits = form.visits || [];
+    const visitNumbers = visits.map(v => v.visit_number).sort().join(', ');
+    const completionPercentage = Math.round((visits.length / 4) * 100);
+    const lastVisitDate = visits.length > 0 ? 
+      Math.max(...visits.map(v => new Date(v.visit_date).getTime())) : null;
+    
+    overviewSheet.addRow({
+      facility: form.health_facility_name,
+      province: form.province,
+      district: form.district,
+      doctor: form.doctor_name,
+      created: new Date(form.created_at).toLocaleString(),
+      visit_count: visits.length,
+      visit_numbers: visitNumbers,
+      completion: `${completionPercentage}%`,
+      last_visit: lastVisitDate ? new Date(lastVisitDate).toLocaleDateString() : 'No visits',
+      status: form.sync_status
+    });
+  });
+}
+
+// Create individual facility worksheet with all visit details
+async function createFacilityWorksheet(workbook, facilityData) {
+  const { facilityName, province, district, forms } = facilityData;
+  const worksheetName = createSafeWorksheetName(facilityName);
+  
+  const facilitySheet = workbook.addWorksheet(worksheetName);
+  
+  // Add facility header information
+  facilitySheet.addRow(['FACILITY SUPERVISION REPORT']);
+  facilitySheet.addRow(['']);
+  facilitySheet.addRow(['Facility Name:', facilityName]);
+  facilitySheet.addRow(['Province:', province]);
+  facilitySheet.addRow(['District:', district]);
+  facilitySheet.addRow(['Export Date:', new Date().toLocaleString()]);
+  facilitySheet.addRow(['']);
+
+  // Style facility header
+  facilitySheet.getCell('A1').font = { bold: true, size: 16 };
+  facilitySheet.getCell('A3').font = { bold: true };
+  facilitySheet.getCell('A4').font = { bold: true };
+  facilitySheet.getCell('A5').font = { bold: true };
+  facilitySheet.getCell('A6').font = { bold: true };
+
+  let currentRow = 8;
+
+  // Process each form for this facility
+  for (const form of forms) {
+    // Add form header
+    facilitySheet.addRow(['']);
+    facilitySheet.addRow([`FORM ID: ${form.id} | Doctor: ${form.doctor_name} | Created: ${new Date(form.created_at).toLocaleDateString()}`]);
+    facilitySheet.addRow(['']);
+    
+    const formHeaderRow = facilitySheet.getRow(currentRow + 2);
+    formHeaderRow.font = { bold: true };
+    formHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFFD700' }
+    };
+
+    currentRow += 3;
+
+    if (!form.visits || form.visits.length === 0) {
+      facilitySheet.addRow(['No visits recorded for this form']);
+      currentRow += 2;
+      continue;
+    }
+
+    // Get enhanced visit data for each visit
+    for (const visit of form.visits) {
+      const enhancedVisitData = await getEnhancedVisitData(visit.visit_id);
+      
+      // Add visit header
+      facilitySheet.addRow([`VISIT ${visit.visit_number} - Date: ${formatDate(visit.visit_date)}`]);
+      const visitHeaderRow = facilitySheet.getRow(currentRow + 1);
+      visitHeaderRow.font = { bold: true, color: { argb: 'FF000080' } };
+      currentRow += 2;
+
+      // Add visit basic info
+      facilitySheet.addRow(['Visit Information:']);
+      facilitySheet.addRow(['', 'Recommendations:', visit.recommendations || 'None']);
+      facilitySheet.addRow(['', 'Actions Agreed:', visit.actions_agreed || 'None']);
+      facilitySheet.addRow(['', 'Supervisor Signature:', visit.supervisor_signature || 'Not signed']);
+      facilitySheet.addRow(['', 'Facility Rep Signature:', visit.facility_representative_signature || 'Not signed']);
+      facilitySheet.addRow(['', 'Sync Status:', visit.sync_status]);
+      facilitySheet.addRow(['']);
+      currentRow += 7;
+
+      // Add detailed sections for this visit
+      currentRow = await addVisitAdminManagementSection(facilitySheet, currentRow, enhancedVisitData.adminManagement);
+      currentRow = await addVisitLogisticsSection(facilitySheet, currentRow, enhancedVisitData.logistics);
+      currentRow = await addVisitEquipmentSection(facilitySheet, currentRow, enhancedVisitData.equipment);
+      currentRow = await addVisitMhdcManagementSection(facilitySheet, currentRow, enhancedVisitData.mhdcManagement);
+      currentRow = await addVisitServiceStandardsSection(facilitySheet, currentRow, enhancedVisitData.serviceStandards);
+      currentRow = await addVisitHealthInformationSection(facilitySheet, currentRow, enhancedVisitData.healthInformation);
+      currentRow = await addVisitIntegrationSection(facilitySheet, currentRow, enhancedVisitData.integration);
+      currentRow = await addVisitMedicineDetailsSection(facilitySheet, currentRow, enhancedVisitData.medicineDetails);
+      currentRow = await addVisitPatientVolumesSection(facilitySheet, currentRow, enhancedVisitData.patientVolumes);
+      
+      // Add separator between visits
+      facilitySheet.addRow(['']);
+      facilitySheet.addRow(['═══════════════════════════════════════════════════════════════════']);
+      facilitySheet.addRow(['']);
+      currentRow += 3;
+    }
+
+    // Add staff training data (form-level, not visit-level)
+    currentRow = await addFormStaffTrainingSection(facilitySheet, currentRow, form.id);
+  }
+
+  // Auto-fit columns
+  facilitySheet.columns.forEach(column => {
+    if (column.width < 15) column.width = 15;
+    if (column.width > 50) column.width = 50;
+  });
+}
+
+// Helper function to get all enhanced visit data
+async function getEnhancedVisitData(visitId) {
+  const [
+    adminMgmt,
+    logistics,
+    equipment,
+    mhdcMgmt,
+    serviceStandards,
+    healthInfo,
+    integration,
+    medicineDetails,
+    patientVolumes
+  ] = await Promise.all([
+    getVisitAdminManagementResponses(visitId),
+    getVisitLogisticsResponses(visitId),
+    getVisitEquipmentResponses(visitId),
+    getVisitMhdcManagementResponses(visitId),
+    getVisitServiceStandardsResponses(visitId),
+    getVisitHealthInformationResponses(visitId),
+    getVisitIntegrationResponses(visitId),
+    getVisitMedicineDetails(visitId),
+    getVisitPatientVolumes(visitId)
+  ]);
+
+  return {
+    adminManagement: adminMgmt,
+    logistics: logistics,
+    equipment: equipment,
+    mhdcManagement: mhdcMgmt,
+    serviceStandards: serviceStandards,
+    healthInformation: healthInfo,
+    integration: integration,
+    medicineDetails: medicineDetails,
+    patientVolumes: patientVolumes
+  };
+}
+
+// Add Admin Management section to facility worksheet
+async function addVisitAdminManagementSection(sheet, startRow, adminData) {
+  sheet.addRow(['Administrative Management:']);
+  let currentRow = startRow + 1;
+  
+  const adminRow = sheet.getRow(currentRow);
+  adminRow.font = { bold: true };
+  adminRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE6F3FF' }
+  };
+
+  if (adminData) {
+    const adminFields = [
+      { key: 'a1_response', label: 'Governance Committee Active' },
+      { key: 'a2_response', label: 'NCD Focal Person Appointed' },
+      { key: 'a3_response', label: 'Policy Available' },
+      { key: 'a4_response', label: 'SOPs Available' },
+      { key: 'a5_response', label: 'Reporting System Functional' },
+      { key: 'a6_response', label: 'Budget Allocated' },
+      { key: 'a7_response', label: 'Financial Transparency' }
+    ];
+
+    adminFields.forEach(field => {
+      sheet.addRow(['', field.label + ':', getYNValue(adminData[field.key])]);
+      currentRow++;
+    });
+
+    if (adminData.actions_agreed) {
+      sheet.addRow(['', 'Actions Agreed:', adminData.actions_agreed]);
+      currentRow++;
+    }
+  } else {
+    sheet.addRow(['', 'No administrative management data recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add Logistics section to facility worksheet
+async function addVisitLogisticsSection(sheet, startRow, logisticsData) {
+  sheet.addRow(['Medicine Logistics & Availability:']);
+  let currentRow = startRow + 1;
+  
+  const logisticsRow = sheet.getRow(currentRow);
+  logisticsRow.font = { bold: true };
+  logisticsRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFFFEEE6' }
+  };
+
+  if (logisticsData) {
+    const medicines = [
+      { key: 'amlodipine_5_10mg', name: 'Amlodipine 5/10mg' },
+      { key: 'enalapril_2_5_10mg', name: 'Enalapril 2.5/10mg' },
+      { key: 'losartan_25_50mg', name: 'Losartan 25/50mg' },
+      { key: 'hydrochlorothiazide_12_5_25mg', name: 'Hydrochlorothiazide 12.5/25mg' },
+      { key: 'chlorthalidone_6_25_12_5mg', name: 'Chlorthalidone 6.25/12.5mg' },
+      { key: 'other_antihypertensives', name: 'Other Antihypertensives' },
+      { key: 'atorvastatin_5mg', name: 'Atorvastatin 5mg' },
+      { key: 'atorvastatin_10mg', name: 'Atorvastatin 10mg' },
+      { key: 'atorvastatin_20mg', name: 'Atorvastatin 20mg' },
+      { key: 'other_statins', name: 'Other Statins' },
+      { key: 'metformin_500mg', name: 'Metformin 500mg' },
+      { key: 'metformin_1000mg', name: 'Metformin 1000mg' },
+      { key: 'glimepiride_1_2mg', name: 'Glimepiride 1/2mg' },
+      { key: 'gliclazide_40_80mg', name: 'Gliclazide 40/80mg' },
+      { key: 'glipizide_2_5_5mg', name: 'Glipizide 2.5/5mg' },
+      { key: 'sitagliptin_50mg', name: 'Sitagliptin 50mg' },
+      { key: 'pioglitazone_5mg', name: 'Pioglitazone 5mg' },
+      { key: 'empagliflozin_10mg', name: 'Empagliflozin 10mg' },
+      { key: 'insulin_soluble_inj', name: 'Insulin Soluble Injection' },
+      { key: 'insulin_nph_inj', name: 'Insulin NPH Injection' },
+      { key: 'other_hypoglycemic_agents', name: 'Other Hypoglycemic Agents' },
+      { key: 'dextrose_25_solution', name: 'Dextrose 25% Solution' },
+      { key: 'aspirin_75mg', name: 'Aspirin 75mg' },
+      { key: 'clopidogrel_75mg', name: 'Clopidogrel 75mg' },
+      { key: 'metoprolol_succinate_12_5_25_50mg', name: 'Metoprolol Succinate 12.5/25/50mg' },
+      { key: 'isosorbide_dinitrate_5mg', name: 'Isosorbide Dinitrate 5mg' },
+      { key: 'other_drugs', name: 'Other Drugs' },
+      { key: 'amoxicillin_clavulanic_potassium_625mg', name: 'Amoxicillin Clavulanic Potassium 625mg' },
+      { key: 'azithromycin_500mg', name: 'Azithromycin 500mg' },
+      { key: 'other_antibiotics', name: 'Other Antibiotics' },
+      { key: 'salbutamol_dpi', name: 'Salbutamol DPI' },
+      { key: 'salbutamol', name: 'Salbutamol' },
+      { key: 'ipratropium', name: 'Ipratropium' },
+      { key: 'tiotropium_bromide', name: 'Tiotropium Bromide' },
+      { key: 'formoterol', name: 'Formoterol' },
+      { key: 'other_bronchodilators', name: 'Other Bronchodilators' },
+      { key: 'prednisolone_5_10_20mg', name: 'Prednisolone 5/10/20mg' },
+      { key: 'other_steroids_oral', name: 'Other Oral Steroids' }
+    ];
+
+    medicines.forEach(medicine => {
+      const availability = logisticsData[medicine.key];
+      if (availability === 'Y' || availability === 'N') {
+        sheet.addRow(['', medicine.name + ':', getYNValue(availability)]);
+        currentRow++;
+      }
+    });
+
+    if (logisticsData.actions_agreed) {
+      sheet.addRow(['', 'Actions Agreed:', logisticsData.actions_agreed]);
+      currentRow++;
+    }
+  } else {
+    sheet.addRow(['', 'No logistics data recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add Equipment section to facility worksheet
+async function addVisitEquipmentSection(sheet, startRow, equipmentData) {
+  sheet.addRow(['Equipment & Infrastructure:']);
+  let currentRow = startRow + 1;
+  
+  const equipmentRow = sheet.getRow(currentRow);
+  equipmentRow.font = { bold: true };
+  equipmentRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFFFE6E6' }
+  };
+
+  if (equipmentData) {
+    const equipment = [
+      { key: 'sphygmomanometer', name: 'Sphygmomanometer' },
+      { key: 'weighing_scale', name: 'Weighing Scale' },
+      { key: 'measuring_tape', name: 'Measuring Tape' },
+      { key: 'peak_expiratory_flow_meter', name: 'Peak Expiratory Flow Meter' },
+      { key: 'oxygen', name: 'Oxygen' },
+      { key: 'oxygen_mask', name: 'Oxygen Mask' },
+      { key: 'nebulizer', name: 'Nebulizer' },
+      { key: 'pulse_oximetry', name: 'Pulse Oximetry' },
+      { key: 'glucometer', name: 'Glucometer' },
+      { key: 'glucometer_strips', name: 'Glucometer Strips' },
+      { key: 'lancets', name: 'Lancets' },
+      { key: 'urine_dipstick', name: 'Urine Dipstick' },
+      { key: 'ecg', name: 'ECG Machine' },
+      { key: 'stethoscope', name: 'Stethoscope' },
+      { key: 'thermometer', name: 'Thermometer' },
+      { key: 'examination_table', name: 'Examination Table' },
+      { key: 'privacy_screen', name: 'Privacy Screen' },
+      { key: 'other_equipment', name: 'Other Equipment' }
+    ];
+
+    equipment.forEach(equip => {
+      const functionality = equipmentData[equip.key];
+      if (functionality === 'Y' || functionality === 'N') {
+        sheet.addRow(['', equip.name + ':', getYNValue(functionality)]);
+        currentRow++;
+      }
+    });
+
+    if (equipmentData.actions_agreed) {
+      sheet.addRow(['', 'Actions Agreed:', equipmentData.actions_agreed]);
+      currentRow++;
+    }
+  } else {
+    sheet.addRow(['', 'No equipment data recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add MHDC Management section to facility worksheet
+async function addVisitMhdcManagementSection(sheet, startRow, mhdcData) {
+  sheet.addRow(['MHDC Management:']);
+  let currentRow = startRow + 1;
+  
+  const mhdcRow = sheet.getRow(currentRow);
+  mhdcRow.font = { bold: true };
+  mhdcRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE6FFE6' }
+  };
+
+  if (mhdcData) {
+    const mhdcFields = [
+      { key: 'b1_response', label: 'MHDC Corner Established' },
+      { key: 'b2_response', label: 'MHDC Register Maintained' },
+      { key: 'b3_response', label: 'MHDC Guidelines Available' },
+      { key: 'b4_response', label: 'MHDC Reporting Functional' },
+      { key: 'b5_response', label: 'Patient Follow-up System' },
+      { key: 'b6_response', label: 'Community Mobilization' },
+      { key: 'b7_response', label: 'Referral System Active' }
+    ];
+
+    mhdcFields.forEach(field => {
+      const value = mhdcData[field.key];
+      if (value === 'Y' || value === 'N') {
+        sheet.addRow(['', field.label + ':', getYNValue(value)]);
+        currentRow++;
+      }
+    });
+
+    if (mhdcData.actions_agreed) {
+      sheet.addRow(['', 'Actions Agreed:', mhdcData.actions_agreed]);
+      currentRow++;
+    }
+  } else {
+    sheet.addRow(['', 'No MHDC management data recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add Service Standards section to facility worksheet
+async function addVisitServiceStandardsSection(sheet, startRow, serviceData) {
+  sheet.addRow(['Service Standards Compliance:']);
+  let currentRow = startRow + 1;
+  
+  const serviceRow = sheet.getRow(currentRow);
+  serviceRow.font = { bold: true };
+  serviceRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFADD8E6' }
+  };
+
+  if (serviceData) {
+    const serviceStandards = [
+      { key: 'c2_blood_pressure', name: 'Blood Pressure Measurement' },
+      { key: 'c2_blood_sugar', name: 'Blood Sugar Testing' },
+      { key: 'c2_bmi_measurement', name: 'BMI Measurement' },
+      { key: 'c2_waist_circumference', name: 'Waist Circumference Measurement' },
+      { key: 'c2_cvd_risk_estimation', name: 'CVD Risk Estimation' },
+      { key: 'c2_urine_protein_measurement', name: 'Urine Protein Measurement' },
+      { key: 'c2_peak_expiratory_flow_rate', name: 'Peak Expiratory Flow Rate' },
+      { key: 'c2_egfr_calculation', name: 'eGFR Calculation' },
+      { key: 'c2_brief_intervention', name: 'Brief Intervention' },
+      { key: 'c2_foot_examination', name: 'Foot Examination' },
+      { key: 'c2_oral_examination', name: 'Oral Examination' },
+      { key: 'c2_eye_examination', name: 'Eye Examination' },
+      { key: 'c2_health_education', name: 'Health Education' },
+      { key: 'c3_response', name: 'Examination Room Confidentiality' },
+      { key: 'c4_response', name: 'Home-bound NCD Services' },
+      { key: 'c5_response', name: 'Community-based NCD Care' },
+      { key: 'c6_response', name: 'School-based NCD Prevention' },
+      { key: 'c7_response', name: 'Patient Tracking Mechanism' }
+    ];
+
+    serviceStandards.forEach(service => {
+      const compliance = serviceData[service.key];
+      if (compliance === 'Y' || compliance === 'N') {
+        sheet.addRow(['', service.name + ':', getYNValue(compliance)]);
+        currentRow++;
+      }
+    });
+
+    if (serviceData.actions_agreed) {
+      sheet.addRow(['', 'Actions Agreed:', serviceData.actions_agreed]);
+      currentRow++;
+    }
+  } else {
+    sheet.addRow(['', 'No service standards data recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add Health Information section to facility worksheet
+async function addVisitHealthInformationSection(sheet, startRow, healthInfoData) {
+  sheet.addRow(['Health Information System:']);
+  let currentRow = startRow + 1;
+  
+  const healthInfoRow = sheet.getRow(currentRow);
+  healthInfoRow.font = { bold: true };
+  healthInfoRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFFFE6FF' }
+  };
+
+  if (healthInfoData) {
+    const healthInfoFields = [
+      { key: 'd1_response', label: 'Health Records Management' },
+      { key: 'd2_response', label: 'Data Quality Assurance' },
+      { key: 'd3_response', label: 'Information Sharing Protocol' },
+      { key: 'd4_response', label: 'Digital Health Tools Usage' },
+      { key: 'd5_response', label: 'Patient Education Materials' },
+      { key: 'd6_response', label: 'Community Health Information' },
+      { key: 'd7_response', label: 'Research & Surveillance' }
+    ];
+
+    healthInfoFields.forEach(field => {
+      const value = healthInfoData[field.key];
+      if (value === 'Y' || value === 'N') {
+        sheet.addRow(['', field.label + ':', getYNValue(value)]);
+        currentRow++;
+      }
+    });
+
+    if (healthInfoData.actions_agreed) {
+      sheet.addRow(['', 'Actions Agreed:', healthInfoData.actions_agreed]);
+      currentRow++;
+    }
+  } else {
+    sheet.addRow(['', 'No health information data recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add Integration section to facility worksheet
+async function addVisitIntegrationSection(sheet, startRow, integrationData) {
+  sheet.addRow(['Service Integration:']);
+  let currentRow = startRow + 1;
+  
+  const integrationRow = sheet.getRow(currentRow);
+  integrationRow.font = { bold: true };
+  integrationRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFFFE6E6' }
+  };
+
+  if (integrationData) {
+    const integrationFields = [
+      { key: 'e1_response', label: 'Primary Healthcare Integration' },
+      { key: 'e2_response', label: 'Maternal Health Integration' },
+      { key: 'e3_response', label: 'Mental Health Integration' },
+      { key: 'e4_response', label: 'Nutrition Services Integration' },
+      { key: 'e5_response', label: 'Immunization Integration' },
+      { key: 'e6_response', label: 'Emergency Services Integration' },
+      { key: 'e7_response', label: 'Community Programs Integration' }
+    ];
+
+    integrationFields.forEach(field => {
+      const value = integrationData[field.key];
+      if (value === 'Y' || value === 'N') {
+        sheet.addRow(['', field.label + ':', getYNValue(value)]);
+        currentRow++;
+      }
+    });
+
+    if (integrationData.actions_agreed) {
+      sheet.addRow(['', 'Actions Agreed:', integrationData.actions_agreed]);
+      currentRow++;
+    }
+  } else {
+    sheet.addRow(['', 'No integration data recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add Medicine Details section to facility worksheet
+async function addVisitMedicineDetailsSection(sheet, startRow, medicineDetails) {
+  sheet.addRow(['Medicine Stock Details:']);
+  let currentRow = startRow + 1;
+  
+  const medicineRow = sheet.getRow(currentRow);
+  medicineRow.font = { bold: true };
+  medicineRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFF0E68C' }
+  };
+
+  if (medicineDetails && medicineDetails.length > 0) {
+    // Add medicine details header
+    sheet.addRow(['', 'Medicine Name', 'Stock Quantity', 'Expiry Date', 'Notes']);
+    const detailHeaderRow = sheet.getRow(currentRow + 1);
+    detailHeaderRow.font = { bold: true };
+    currentRow += 2;
+
+    medicineDetails.forEach(medicine => {
+      sheet.addRow([
+        '',
+        medicine.medicine_name || '',
+        medicine.stock_quantity || '',
+        formatDate(medicine.expiry_date) || '',
+        medicine.notes || ''
+      ]);
+      currentRow++;
+    });
+  } else {
+    sheet.addRow(['', 'No medicine stock details recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add Patient Volumes section to facility worksheet
+async function addVisitPatientVolumesSection(sheet, startRow, patientData) {
+  sheet.addRow(['Patient Volume Data:']);
+  let currentRow = startRow + 1;
+  
+  const patientRow = sheet.getRow(currentRow);
+  patientRow.font = { bold: true };
+  patientRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFDDA0DD' }
+  };
+
+  if (patientData) {
+    const patientFields = [
+      { key: 'hypertension_patients', label: 'Hypertension Patients' },
+      { key: 'diabetes_patients', label: 'Diabetes Patients' },
+      { key: 'copd_patients', label: 'COPD Patients' },
+      { key: 'cvd_patients', label: 'CVD Patients' },
+      { key: 'other_ncd_patients', label: 'Other NCD Patients' },
+      { key: 'total_monthly_visits', label: 'Total Monthly Visits' },
+      { key: 'new_cases_monthly', label: 'New Cases Monthly' },
+      { key: 'referrals_made', label: 'Referrals Made' },
+      { key: 'referrals_received', label: 'Referrals Received' }
+    ];
+
+    patientFields.forEach(field => {
+      const value = patientData[field.key];
+      if (value !== null && value !== undefined) {
+        sheet.addRow(['', field.label + ':', value]);
+        currentRow++;
+      }
+    });
+  } else {
+    sheet.addRow(['', 'No patient volume data recorded']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add Staff Training section to facility worksheet (form-level data)
+async function addFormStaffTrainingSection(sheet, startRow, formId) {
+  sheet.addRow(['Staff Training Matrix:']);
+  let currentRow = startRow + 1;
+  
+  const staffRow = sheet.getRow(currentRow);
+  staffRow.font = { bold: true };
+  staffRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF90EE90' }
+  };
+
+  try {
+    const staffTrainingQuery = `SELECT * FROM form_staff_training WHERE form_id = $1`;
+    const staffTrainingResult = await db.query(staffTrainingQuery, [formId]);
+    
+    if (staffTrainingResult.rows.length > 0) {
+      const staffData = staffTrainingResult.rows[0];
+      
+      // Add staff training header
+      sheet.addRow(['', 'Staff Category', 'Total Staff', 'MHDC Trained', 'FEN Trained', 'Other NCD Trained', 'MHDC %', 'FEN %', 'Other NCD %']);
+      const trainingHeaderRow = sheet.getRow(currentRow + 1);
+      trainingHeaderRow.font = { bold: true };
+      currentRow += 2;
+
+      const staffCategories = [
+        { key: 'ha', name: 'Health Assistant (HA)' },
+        { key: 'sr_ahw', name: 'Senior AHW' },
+        { key: 'ahw', name: 'AHW' },
+        { key: 'sr_anm', name: 'Senior ANM' },
+        { key: 'anm', name: 'ANM' },
+        { key: 'others', name: 'Others' }
+      ];
+      
+      staffCategories.forEach(category => {
+        const total = staffData[`${category.key}_total_staff`] || 0;
+        const mhdc = staffData[`${category.key}_mhdc_trained`] || 0;
+        const fen = staffData[`${category.key}_fen_trained`] || 0;
+        const other = staffData[`${category.key}_other_ncd_trained`] || 0;
+        
+        const mhdcPercent = total > 0 ? ((mhdc / total) * 100).toFixed(1) : '0';
+        const fenPercent = total > 0 ? ((fen / total) * 100).toFixed(1) : '0';
+        const otherPercent = total > 0 ? ((other / total) * 100).toFixed(1) : '0';
+        
+        if (total > 0) {
+          sheet.addRow([
+            '',
+            category.name,
+            total,
+            mhdc,
+            fen,
+            other,
+            `${mhdcPercent}%`,
+            `${fenPercent}%`,
+            `${otherPercent}%`
+          ]);
+          currentRow++;
+        }
+      });
+
+      if (staffData.last_mhdc_training_date) {
+        sheet.addRow(['', 'Last MHDC Training Date:', formatDate(staffData.last_mhdc_training_date)]);
+        currentRow++;
+      }
+    } else {
+      sheet.addRow(['', 'No staff training data recorded']);
+      currentRow++;
+    }
+  } catch (error) {
+    console.error('Error fetching staff training data:', error);
+    sheet.addRow(['', 'Error loading staff training data']);
+    currentRow++;
+  }
+
+  sheet.addRow(['']);
+  return currentRow + 1;
+}
+
+// Add overall analytics sheet
+async function addOverallAnalyticsSheet(workbook, forms, facilitiesData) {
+  const analyticsSheet = workbook.addWorksheet('Overall Analytics');
+  
+  const totalForms = forms.length;
+  const totalFacilities = facilitiesData.length;
+  const totalVisits = forms.reduce((sum, form) => sum + (form.visits ? form.visits.length : 0), 0);
+  const facilitiesWithAllVisits = forms.filter(f => 
+    f.visits && f.visits.length === 4
+  ).length;
+  
+  const averageVisitsPerFacility = totalForms > 0 ? (totalVisits / totalForms).toFixed(1) : '0';
+  
+  // Province distribution
+  const provinceStats = forms.reduce((acc, form) => {
+    acc[form.province] = (acc[form.province] || 0) + 1;
+    return acc;
+  }, {});
+  
+  // Completion status distribution
+  const completionStats = forms.reduce((acc, form) => {
+    const visitCount = form.visits ? form.visits.length : 0;
+    if (visitCount === 0) acc.no_visits++;
+    else if (visitCount === 4) acc.complete++;
+    else acc.in_progress++;
+    return acc;
+  }, { no_visits: 0, in_progress: 0, complete: 0 });
+  
+  // Doctor activity
+  const doctorStats = forms.reduce((acc, form) => {
+    const doctorKey = form.doctor_name;
+    if (!acc[doctorKey]) {
+      acc[doctorKey] = { forms: 0, visits: 0, facilities: new Set() };
+    }
+    acc[doctorKey].forms++;
+    acc[doctorKey].visits += form.visits ? form.visits.length : 0;
+    acc[doctorKey].facilities.add(form.health_facility_name);
+    return acc;
+  }, {});
+
+  analyticsSheet.addRow(['SUPERVISION FORMS EXPORT ANALYTICS']);
+  analyticsSheet.addRow(['']);
+  analyticsSheet.addRow(['Export Summary']);
+  analyticsSheet.addRow(['Total Forms Exported', totalForms]);
+  analyticsSheet.addRow(['Total Facilities', totalFacilities]);
+  analyticsSheet.addRow(['Total Visits Recorded', totalVisits]);
+  analyticsSheet.addRow(['Facilities with Complete 4 Visits', facilitiesWithAllVisits]);
+  analyticsSheet.addRow(['Average Visits per Facility', averageVisitsPerFacility]);
+  analyticsSheet.addRow(['Export Generated', new Date().toLocaleString()]);
+  analyticsSheet.addRow(['']);
+  
+  analyticsSheet.addRow(['Forms by Province']);
+  Object.entries(provinceStats).forEach(([province, count]) => {
+    analyticsSheet.addRow([province, count]);
+  });
+  analyticsSheet.addRow(['']);
+  
+  analyticsSheet.addRow(['Completion Status']);
+  analyticsSheet.addRow(['No Visits Yet', completionStats.no_visits]);
+  analyticsSheet.addRow(['In Progress (1-3 visits)', completionStats.in_progress]);
+  analyticsSheet.addRow(['Complete (4 visits)', completionStats.complete]);
+  analyticsSheet.addRow(['']);
+
+  analyticsSheet.addRow(['Doctor Activity Summary']);
+  analyticsSheet.addRow(['Doctor Name', 'Forms Created', 'Total Visits', 'Facilities Supervised']);
+  const doctorHeaderRow = analyticsSheet.getRow(analyticsSheet.rowCount);
+  doctorHeaderRow.font = { bold: true };
+  
+  Object.entries(doctorStats).forEach(([doctor, stats]) => {
+    analyticsSheet.addRow([
+      doctor,
+      stats.forms,
+      stats.visits,
+      stats.facilities.size
+    ]);
+  });
+  analyticsSheet.addRow(['']);
+  
+  analyticsSheet.addRow(['Export Structure Notes']);
+  analyticsSheet.addRow(['- Each facility has its own worksheet with all visit details']);
+  analyticsSheet.addRow(['- Visit data includes all sections: Admin, Logistics, Equipment, etc.']);
+  analyticsSheet.addRow(['- Medicine and equipment data shows availability/functionality per visit']);
+  analyticsSheet.addRow(['- Staff training data is captured at facility level']);
+  analyticsSheet.addRow(['- Actions Agreed shows agreed actions between supervisor and supervisee']);
+  
+  // Style the analytics sheet
+  analyticsSheet.getCell('A1').font = { bold: true, size: 14 };
+  analyticsSheet.getCell('A3').font = { bold: true };
+  analyticsSheet.getCell('A12').font = { bold: true };
+  analyticsSheet.getCell('A17').font = { bold: true };
+  analyticsSheet.getCell('A23').font = { bold: true };
+  analyticsSheet.getCell('A29').font = { bold: true };
+}
+
+// Export all forms to Excel (Admin only) - RESTRUCTURED for facility-based approach
+router.get('/excel', requireAdmin, handleExportRequest);
 
 // Export user-specific forms (Users can export their own data)
 router.get('/excel/user/:userId', async (req, res, next) => {
@@ -780,11 +1025,9 @@ router.get('/excel/user/:userId', async (req, res, next) => {
       });
     }
 
-    // Set userId in query and redirect to main export
+    // Set userId in query and call the export handler
     req.query.userId = userId;
-    
-    // Forward to main export handler
-    return router.get('/excel')(req, res, next);
+    return await handleExportRequest(req, res, next);
 
   } catch (error) {
     next(error);
@@ -796,15 +1039,21 @@ router.get('/summary', requireAdmin, async (req, res, next) => {
   try {
     const statsQuery = `
       SELECT 
-        COUNT(*) as total_forms,
-        COUNT(DISTINCT user_id) as total_users,
-        COUNT(DISTINCT health_facility_name) as total_facilities,
-        COUNT(DISTINCT province) as total_provinces,
-        COUNT(DISTINCT district) as total_districts,
-        COUNT(CASE WHEN sync_status = 'local' THEN 1 END) as local_forms,
-        COUNT(CASE WHEN sync_status = 'synced' THEN 1 END) as synced_forms,
-        COUNT(CASE WHEN sync_status = 'verified' THEN 1 END) as verified_forms
-      FROM supervision_forms
+        COUNT(DISTINCT sf.id) as total_forms,
+        COUNT(DISTINCT sf.user_id) as total_users,
+        COUNT(DISTINCT sf.health_facility_name) as total_facilities,
+        COUNT(DISTINCT sf.province) as total_provinces,
+        COUNT(DISTINCT sf.district) as total_districts,
+        COUNT(CASE WHEN sf.sync_status = 'local' THEN 1 END) as local_forms,
+        COUNT(CASE WHEN sf.sync_status = 'synced' THEN 1 END) as synced_forms,
+        COUNT(CASE WHEN sf.sync_status = 'verified' THEN 1 END) as verified_forms,
+        COUNT(sv.id) as total_visits,
+        COUNT(CASE WHEN sv.visit_number = 1 THEN 1 END) as visit_1_count,
+        COUNT(CASE WHEN sv.visit_number = 2 THEN 1 END) as visit_2_count,
+        COUNT(CASE WHEN sv.visit_number = 3 THEN 1 END) as visit_3_count,
+        COUNT(CASE WHEN sv.visit_number = 4 THEN 1 END) as visit_4_count
+      FROM supervision_forms sf
+      LEFT JOIN supervision_visits sv ON sf.id = sv.form_id
     `;
 
     const statsResult = await db.query(statsQuery);
@@ -812,11 +1061,13 @@ router.get('/summary', requireAdmin, async (req, res, next) => {
 
     const provinceQuery = `
       SELECT 
-        province,
-        COUNT(*) as form_count,
-        COUNT(DISTINCT health_facility_name) as facility_count
-      FROM supervision_forms
-      GROUP BY province
+        sf.province,
+        COUNT(DISTINCT sf.id) as form_count,
+        COUNT(DISTINCT sf.health_facility_name) as facility_count,
+        COUNT(sv.id) as visit_count
+      FROM supervision_forms sf
+      LEFT JOIN supervision_visits sv ON sf.id = sv.form_id
+      GROUP BY sf.province
       ORDER BY form_count DESC
     `;
 
@@ -828,11 +1079,15 @@ router.get('/summary', requireAdmin, async (req, res, next) => {
         sf.province,
         sf.district,
         u.full_name as doctor_name,
-        sf.form_created_at,
-        sf.sync_status
+        sf.created_at,
+        sf.sync_status,
+        COUNT(sv.id) as visit_count,
+        MAX(sv.visit_date) as last_visit_date
       FROM supervision_forms sf
       JOIN users u ON sf.user_id = u.id
-      ORDER BY sf.form_created_at DESC
+      LEFT JOIN supervision_visits sv ON sf.id = sv.form_id
+      GROUP BY sf.id, u.full_name
+      ORDER BY sf.created_at DESC
       LIMIT 10
     `;
 
@@ -845,22 +1100,34 @@ router.get('/summary', requireAdmin, async (req, res, next) => {
         totalFacilities: parseInt(stats.total_facilities),
         totalProvinces: parseInt(stats.total_provinces),
         totalDistricts: parseInt(stats.total_districts),
-        localForms: parseInt(stats.local_forms),
-        syncedForms: parseInt(stats.synced_forms),
-        verifiedForms: parseInt(stats.verified_forms)
+        totalVisits: parseInt(stats.total_visits),
+        visitBreakdown: {
+          visit1: parseInt(stats.visit_1_count),
+          visit2: parseInt(stats.visit_2_count),
+          visit3: parseInt(stats.visit_3_count),
+          visit4: parseInt(stats.visit_4_count)
+        },
+        syncStatus: {
+          local: parseInt(stats.local_forms),
+          synced: parseInt(stats.synced_forms),
+          verified: parseInt(stats.verified_forms)
+        }
       },
       byProvince: provinceResult.rows.map(row => ({
         province: row.province,
         formCount: parseInt(row.form_count),
-        facilityCount: parseInt(row.facility_count)
+        facilityCount: parseInt(row.facility_count),
+        visitCount: parseInt(row.visit_count)
       })),
       recentActivity: recentResult.rows.map(row => ({
         facilityName: row.health_facility_name,
         province: row.province,
         district: row.district,
         doctorName: row.doctor_name,
-        createdAt: row.form_created_at,
-        syncStatus: row.sync_status
+        createdAt: row.created_at,
+        syncStatus: row.sync_status,
+        visitCount: parseInt(row.visit_count),
+        lastVisitDate: row.last_visit_date
       }))
     });
 
@@ -869,96 +1136,49 @@ router.get('/summary', requireAdmin, async (req, res, next) => {
   }
 });
 
-// Helper function to add section data to Excel sheet
-function addSectionToSheet(sheet, sectionTitle, sectionData, fields) {
-  if (!sectionData) return;
-
-  const headerRow = sheet.addRow([sectionTitle]);
-  headerRow.getCell(1).font = { bold: true, size: 14 };
-  headerRow.getCell(1).fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFCCCCCC' }
-  };
-
-  if (sectionTitle === 'OVERALL OBSERVATIONS') {
-    const recHeaderRow = sheet.addRow(['Visit', 'Recommendations', 'Supervisor Signature', 'Facility Rep Signature']);
-    recHeaderRow.font = { bold: true };
-
-    for (let i = 1; i <= 4; i++) {
-      if (sectionData[`recommendations_visit_${i}`] || 
-          sectionData[`supervisor_signature_v${i}`] || 
-          sectionData[`facility_representative_signature_v${i}`]) {
-        sheet.addRow([
-          `Visit ${i}`,
-          sectionData[`recommendations_visit_${i}`] || '',
-          sectionData[`supervisor_signature_v${i}`] || '',
-          sectionData[`facility_representative_signature_v${i}`] || ''
-        ]);
-      }
-    }
-  } else {
-    const fieldHeaderRow = sheet.addRow(['Question', 'Visit 1', 'Visit 2', 'Visit 3', 'Visit 4', 'Comments']);
-    fieldHeaderRow.font = { bold: true };
-
-    fields.forEach(field => {
-      sheet.addRow([
-        field.label,
-        getYNValue(sectionData[`${field.key}_visit_1`]),
-        getYNValue(sectionData[`${field.key}_visit_2`]),
-        getYNValue(sectionData[`${field.key}_visit_3`]),
-        getYNValue(sectionData[`${field.key}_visit_4`]),
-        sectionData[`${field.key}_comment`] || ''
-      ]);
-    });
-  }
-
-  sheet.addRow([]);
-}
-
-// Helper functions to get form section data
-async function getAdminManagementResponses(formId) {
-  const result = await db.query('SELECT * FROM admin_management_responses WHERE form_id = $1', [formId]);
+// Helper functions to get visit section data - SAME AS BEFORE
+async function getVisitAdminManagementResponses(visitId) {
+  const result = await db.query('SELECT * FROM visit_admin_management_responses WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 
-async function getLogisticsResponses(formId) {
-  const result = await db.query('SELECT * FROM logistics_responses WHERE form_id = $1', [formId]);
+async function getVisitLogisticsResponses(visitId) {
+  const result = await db.query('SELECT * FROM visit_logistics_responses WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 
-async function getEquipmentResponses(formId) {
-  const result = await db.query('SELECT * FROM equipment_responses WHERE form_id = $1', [formId]);
+async function getVisitEquipmentResponses(visitId) {
+  const result = await db.query('SELECT * FROM visit_equipment_responses WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 
-async function getMhdcManagementResponses(formId) {
-  const result = await db.query('SELECT * FROM mhdc_management_responses WHERE form_id = $1', [formId]);
+async function getVisitMhdcManagementResponses(visitId) {
+  const result = await db.query('SELECT * FROM visit_mhdc_management_responses WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 
-async function getServiceDeliveryResponses(formId) {
-  const result = await db.query('SELECT * FROM service_delivery_responses WHERE form_id = $1', [formId]);
+async function getVisitServiceStandardsResponses(visitId) {
+  const result = await db.query('SELECT * FROM visit_service_standards_responses WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 
-async function getServiceStandardsResponses(formId) {
-  const result = await db.query('SELECT * FROM service_standards_responses WHERE form_id = $1', [formId]);
+async function getVisitHealthInformationResponses(visitId) {
+  const result = await db.query('SELECT * FROM visit_health_information_responses WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 
-async function getHealthInformationResponses(formId) {
-  const result = await db.query('SELECT * FROM health_information_responses WHERE form_id = $1', [formId]);
+async function getVisitIntegrationResponses(visitId) {
+  const result = await db.query('SELECT * FROM visit_integration_responses WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 
-async function getIntegrationResponses(formId) {
-  const result = await db.query('SELECT * FROM integration_responses WHERE form_id = $1', [formId]);
-  return result.rows[0] || null;
+async function getVisitMedicineDetails(visitId) {
+  const result = await db.query('SELECT * FROM visit_medicine_details WHERE visit_id = $1 ORDER BY medicine_name', [visitId]);
+  return result.rows;
 }
 
-async function getOverallObservationsResponses(formId) {
-  const result = await db.query('SELECT * FROM overall_observations_responses WHERE form_id = $1', [formId]);
+async function getVisitPatientVolumes(visitId) {
+  const result = await db.query('SELECT * FROM visit_patient_volumes WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 

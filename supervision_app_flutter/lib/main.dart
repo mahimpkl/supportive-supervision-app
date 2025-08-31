@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supervision_app/screens/offline_home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/create_form_screen.dart';
+import 'screens/form_details_screen.dart';
 import 'providers/auth_provider.dart';
 
 void main() {
@@ -181,13 +183,15 @@ class MyApp extends ConsumerWidget {
       // Initial route
       initialRoute: '/',
       
-      // Keep routes for manual navigation (register, profile, etc.)
+      // Routes
       routes: {
         '/': (context) => const AuthWrapper(),
+        '/splash': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) => const OfflineHomeScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/create-form': (context) => const CreateFormScreen(),
       },
       
       // Global navigation fallback
@@ -198,10 +202,19 @@ class MyApp extends ConsumerWidget {
           case '/register':
             return _createRoute(const RegisterScreen());
           case '/home':
-            return _createRoute(const HomeScreen());
+            return _createRoute(const OfflineHomeScreen());
           case '/profile':
             return _createRoute(const ProfileScreen());
+          case '/create-form':
+            return _createRoute(const CreateFormScreen());
           default:
+            // Handle parameterized routes
+            if (settings.name != null && settings.name!.startsWith('/form/')) {
+              final formId = int.tryParse(settings.name!.split('/')[2]);
+              if (formId != null) {
+                return _createRoute(FormDetailsScreen(formId: formId));
+              }
+            }
             return _createRoute(const LoginScreen());
         }
       },
@@ -244,7 +257,7 @@ class AuthWrapper extends ConsumerWidget {
     
     // Navigate based on auth state
     return authState.isAuthenticated 
-        ? const HomeScreen() 
+        ? const OfflineHomeScreen() 
         : const LoginScreen();
   }
 }
