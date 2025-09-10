@@ -3,10 +3,11 @@ import 'package:retrofit/retrofit.dart';
 import '../models/user.dart';
 import 'storage_service.dart';
 import 'auth_interceptor.dart';
+import '../config/app_config.dart';
 
 part 'api_client.g.dart';
 
-@RestApi(baseUrl: "http://192.168.1.69:3000/api")
+@RestApi(baseUrl: "")
 abstract class ApiClient {
   factory ApiClient(Dio dio, {String baseUrl}) = _ApiClient;
 
@@ -73,11 +74,11 @@ class DioProvider {
     final dio = Dio();
     
     // Ensure base URL is set so relative paths work in SyncService
-    dio.options.baseUrl = "http://192.168.1.69:3000/api";
+    dio.options.baseUrl = AppConfigExtension.effectiveBaseUrl;
     
-    dio.options.connectTimeout = const Duration(seconds: 30);
-    dio.options.receiveTimeout = const Duration(seconds: 30);
-    dio.options.sendTimeout = const Duration(seconds: 30);
+    dio.options.connectTimeout = AppConfig.connectTimeout;
+    dio.options.receiveTimeout = AppConfig.receiveTimeout;
+    dio.options.sendTimeout = AppConfig.sendTimeout;
     
     // Set default content type for JSON requests
     dio.options.headers['Content-Type'] = 'application/json';
@@ -158,9 +159,9 @@ class DioProvider {
     ));
     
     dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: false, // Don't log binary response bodies (Excel files)
-      requestHeader: true,
+      requestBody: AppConfig.enableRequestBody,
+      responseBody: AppConfig.enableResponseBody, // Don't log binary response bodies (Excel files)
+      requestHeader: AppConfig.enableNetworkLogs,
       responseHeader: false,
     ));
     

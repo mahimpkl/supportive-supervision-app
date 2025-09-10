@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/forms_provider.dart';
+import '../models/staff_training_data.dart';
 
 class CreateFormScreen extends ConsumerStatefulWidget {
   const CreateFormScreen({super.key});
@@ -387,23 +388,23 @@ class _CreateFormScreenState extends ConsumerState<CreateFormScreen> {
     });
 
     try {
-      Map<String, dynamic>? staffTraining;
+      StaffTrainingData? staffTraining;
       
       if (_includeStaffTraining) {
-        staffTraining = {
-          'ha_total_staff': int.tryParse(_haTotal.text) ?? 0,
-          'ha_mhdc_trained': int.tryParse(_haMhdc.text) ?? 0,
-          'ha_fen_trained': int.tryParse(_haFen.text) ?? 0,
-          'ha_other_ncd_trained': int.tryParse(_haOtherNcd.text) ?? 0,
-          'sr_ahw_total_staff': int.tryParse(_srAhwTotal.text) ?? 0,
-          'sr_ahw_mhdc_trained': int.tryParse(_srAhwMhdc.text) ?? 0,
-          'sr_ahw_fen_trained': int.tryParse(_srAhwFen.text) ?? 0,
-          'sr_ahw_other_ncd_trained': int.tryParse(_srAhwOtherNcd.text) ?? 0,
-          'ahw_total_staff': int.tryParse(_ahwTotal.text) ?? 0,
-          'ahw_mhdc_trained': int.tryParse(_ahwMhdc.text) ?? 0,
-          'ahw_fen_trained': int.tryParse(_ahwFen.text) ?? 0,
-          'ahw_other_ncd_trained': int.tryParse(_ahwOtherNcd.text) ?? 0,
-        };
+        staffTraining = StaffTrainingData(
+          haTotalStaff: int.tryParse(_haTotal.text),
+          haMhdcTrained: int.tryParse(_haMhdc.text),
+          haFenTrained: int.tryParse(_haFen.text),
+          haOtherNcdTrained: int.tryParse(_haOtherNcd.text),
+          srAhwTotalStaff: int.tryParse(_srAhwTotal.text),
+          srAhwMhdcTrained: int.tryParse(_srAhwMhdc.text),
+          srAhwFenTrained: int.tryParse(_srAhwFen.text),
+          srAhwOtherNcdTrained: int.tryParse(_srAhwOtherNcd.text),
+          ahwTotalStaff: int.tryParse(_ahwTotal.text),
+          ahwMhdcTrained: int.tryParse(_ahwMhdc.text),
+          ahwFenTrained: int.tryParse(_ahwFen.text),
+          ahwOtherNcdTrained: int.tryParse(_ahwOtherNcd.text),
+        );
       }
 
       final success = await ref.read(formsProvider.notifier).createForm(

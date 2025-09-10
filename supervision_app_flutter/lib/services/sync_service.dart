@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:supervision_app/models/supervision_visit.dart';
 import 'package:uuid/uuid.dart';
 import 'database_helper.dart';
 import 'storage_service.dart';

@@ -1,7 +1,22 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import '../config/app_config.dart';
+import '../services/auth_interceptor.dart';
 import '../models/supervision_form_model.dart';
+import '../models/supervision_visit.dart';
+import '../models/staff_training_data.dart';
+import '../models/infrastructure_data.dart';
+import '../models/admin_management_data.dart';
+import '../models/logistics_data.dart';
+import '../models/equipment_data.dart';
+import '../models/mhdc_management_data.dart';
+import '../models/service_standards_data.dart';
+import '../models/health_information_data.dart';
+import '../models/integration_data.dart';
+import '../models/medicine_detail.dart';
+import '../models/patient_volumes.dart';
+import '../models/equipment_functionality.dart';
+import '../models/quality_assurance.dart';
 import '../services/database_helper.dart';
 import '../services/sync_service.dart';
 import '../services/api_client.dart';
@@ -79,22 +94,23 @@ class FormsNotifier extends StateNotifier<FormsState> {
     loadForms();
   }
 
-  // Load forms from local database with visit counts
+  // Load forms from local database with complete data
   Future<void> loadForms() async {
     state = state.copyWith(isLoading: true, clearError: true);
     
     try {
       final forms = await _dbHelper.getForms();
       
-      // Load visits for each form to get accurate counts
-      final formsWithVisits = <SupervisionForm>[];
+      // Load complete data for each form
+      final formsWithCompleteData = <SupervisionForm>[];
       for (final form in forms) {
-        final visits = await _dbHelper.getVisitsByFormId(form.id!);
-        final formWithVisits = form.copyWith(visits: visits);
-        formsWithVisits.add(formWithVisits);
+        final completeForm = await _dbHelper.getCompleteForm(form.id!);
+        if (completeForm != null) {
+          formsWithCompleteData.add(completeForm);
+        }
       }
       
-      state = state.copyWith(forms: formsWithVisits, isLoading: false);
+      state = state.copyWith(forms: formsWithCompleteData, isLoading: false);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -103,26 +119,30 @@ class FormsNotifier extends StateNotifier<FormsState> {
     }
   }
 
-  // Create new form
+  // Create new form with enhanced data support
   Future<bool> createForm({
     required String healthFacilityName,
     required String province,
     required String district,
-    Map<String, dynamic>? staffTraining,
+    StaffTrainingData? staffTraining,
+    InfrastructureData? infrastructure,
   }) async {
     try {
       final form = SupervisionForm(
         healthFacilityName: healthFacilityName,
         province: province,
         district: district,
-        staffTraining: staffTraining,
       );
 
       final formId = await _dbHelper.insertForm(form);
       
-      // Insert staff training if provided
+      // Insert form-level data if provided
       if (staffTraining != null) {
         await _dbHelper.insertStaffTraining(formId, staffTraining);
+      }
+      
+      if (infrastructure != null) {
+        await _dbHelper.insertInfrastructure(formId, infrastructure);
       }
 
       await loadForms(); // Refresh forms list
@@ -133,24 +153,13 @@ class FormsNotifier extends StateNotifier<FormsState> {
     }
   }
 
-  // Get form by ID with visits and check if next visit is allowed
+  // Get form by ID with complete data
   Future<void> getFormDetails(int formId) async {
     state = state.copyWith(isLoading: true);
     
     try {
-      final form = await _dbHelper.getFormById(formId);
-      if (form != null) {
-        // Load visits
-        final visits = await _dbHelper.getVisitsByFormId(formId);
-        
-        // Load staff training
-        final staffTraining = await _dbHelper.getStaffTrainingByFormId(formId);
-        
-        final completeForm = form.copyWith(
-          visits: visits,
-          staffTraining: staffTraining,
-        );
-        
+      final completeForm = await _dbHelper.getCompleteForm(formId);
+      if (completeForm != null) {
         state = state.copyWith(
           selectedForm: completeForm,
           isLoading: false,
@@ -203,8 +212,8 @@ class FormsNotifier extends StateNotifier<FormsState> {
     return maxVisitNumber < 4 ? maxVisitNumber + 1 : null;
   }
 
-  // Update form with staff training - enhanced for editing
-  Future<bool> updateFormWithStaffTraining(SupervisionForm form) async {
+  // Update form with enhanced data support
+  Future<bool> updateForm(SupervisionForm form) async {
     try {
       // Check if form can be edited (not synced)
       if (form.syncStatus != 'local') {
@@ -214,15 +223,22 @@ class FormsNotifier extends StateNotifier<FormsState> {
 
       await _dbHelper.updateForm(form);
       
-      // Update or insert staff training data
+      // Update form-level data
       if (form.staffTraining != null) {
         final existingTraining = await _dbHelper.getStaffTrainingByFormId(form.id!);
         if (existingTraining != null) {
-          // Update existing staff training
           await _dbHelper.updateStaffTraining(form.id!, form.staffTraining!);
         } else {
-          // Insert new staff training
           await _dbHelper.insertStaffTraining(form.id!, form.staffTraining!);
+        }
+      }
+      
+      if (form.infrastructure != null) {
+        final existingInfrastructure = await _dbHelper.getInfrastructureByFormId(form.id!);
+        if (existingInfrastructure != null) {
+          await _dbHelper.updateInfrastructure(form.id!, form.infrastructure!);
+        } else {
+          await _dbHelper.insertInfrastructure(form.id!, form.infrastructure!);
         }
       }
 
@@ -280,7 +296,7 @@ class FormsNotifier extends StateNotifier<FormsState> {
     }
   }
 
-  // Delete visit - new functionality
+  // Delete visit - enhanced functionality
   Future<bool> deleteVisit(int visitId) async {
     try {
       // Find the visit
@@ -334,20 +350,24 @@ class FormsNotifier extends StateNotifier<FormsState> {
     }
   }
 
-  // Create visit - enhanced validation
+  // Create visit with comprehensive section support
   Future<bool> createVisit({
     required int formId,
     required int visitNumber,
     required DateTime visitDate,
     String? recommendations,
     String? actionsAgreed,
-    Map<String, dynamic>? adminManagement,
-    Map<String, dynamic>? logistics,
-    Map<String, dynamic>? equipment,
-    Map<String, dynamic>? mhdcManagement,
-    Map<String, dynamic>? serviceStandards,
-    Map<String, dynamic>? healthInformation,
-    Map<String, dynamic>? integration,
+    AdminManagementData? adminManagement,
+    LogisticsData? logistics,
+    EquipmentData? equipment,
+    MhdcManagementData? mhdcManagement,
+    ServiceStandardsData? serviceStandards,
+    HealthInformationData? healthInformation,
+    IntegrationData? integration,
+    List<MedicineDetail>? medicineDetails,
+    PatientVolumes? patientVolumes,
+    List<EquipmentFunctionality>? equipmentFunctionality,
+    QualityAssurance? qualityAssurance,
   }) async {
     try {
       // Get current form to validate visit creation
@@ -385,61 +405,49 @@ class FormsNotifier extends StateNotifier<FormsState> {
 
       final visitId = await _dbHelper.insertVisit(visit);
 
-      // Insert section data with proper snake_case keys
-      if (adminManagement != null && adminManagement.isNotEmpty) {
-        await _dbHelper.insertVisitSection(
-          'visit_admin_management_responses',
-          visitId,
-          adminManagement,
-        );
+      // Insert section data using new typed methods
+      if (adminManagement != null) {
+        await _dbHelper.insertAdminManagement(visitId, adminManagement);
       }
       
-      if (logistics != null && logistics.isNotEmpty) {
-        await _dbHelper.insertVisitSection(
-          'visit_logistics_responses',
-          visitId,
-          logistics,
-        );
+      if (logistics != null) {
+        await _dbHelper.insertLogistics(visitId, logistics);
       }
       
-      if (equipment != null && equipment.isNotEmpty) {
-        await _dbHelper.insertVisitSection(
-          'visit_equipment_responses',
-          visitId,
-          equipment,
-        );
+      if (equipment != null) {
+        await _dbHelper.insertEquipment(visitId, equipment);
       }
       
-      if (mhdcManagement != null && mhdcManagement.isNotEmpty) {
-        await _dbHelper.insertVisitSection(
-          'visit_mhdc_management_responses',
-          visitId,
-          mhdcManagement,
-        );
+      if (mhdcManagement != null) {
+        await _dbHelper.insertMhdcManagement(visitId, mhdcManagement);
       }
       
-      if (serviceStandards != null && serviceStandards.isNotEmpty) {
-        await _dbHelper.insertVisitSection(
-          'visit_service_standards_responses',
-          visitId,
-          serviceStandards,
-        );
+      if (serviceStandards != null) {
+        await _dbHelper.insertServiceStandards(visitId, serviceStandards);
       }
       
-      if (healthInformation != null && healthInformation.isNotEmpty) {
-        await _dbHelper.insertVisitSection(
-          'visit_health_information_responses',
-          visitId,
-          healthInformation,
-        );
+      if (healthInformation != null) {
+        await _dbHelper.insertHealthInformation(visitId, healthInformation);
       }
       
-      if (integration != null && integration.isNotEmpty) {
-        await _dbHelper.insertVisitSection(
-          'visit_integration_responses',
-          visitId,
-          integration,
-        );
+      if (integration != null) {
+        await _dbHelper.insertIntegration(visitId, integration);
+      }
+
+      if (medicineDetails != null && medicineDetails.isNotEmpty) {
+        await _dbHelper.insertMedicineDetails(visitId, medicineDetails);
+      }
+
+      if (patientVolumes != null) {
+        await _dbHelper.insertPatientVolumes(visitId, patientVolumes);
+      }
+
+      if (equipmentFunctionality != null && equipmentFunctionality.isNotEmpty) {
+        await _dbHelper.insertEquipmentFunctionality(visitId, equipmentFunctionality);
+      }
+
+      if (qualityAssurance != null) {
+        await _dbHelper.insertQualityAssurance(visitId, qualityAssurance);
       }
 
       // Mark form as updated
@@ -466,62 +474,116 @@ class FormsNotifier extends StateNotifier<FormsState> {
   // Get visit details with all sections
   Future<SupervisionVisit?> getVisitDetails(int visitId) async {
     try {
-      // Find the form that contains this visit
-      SupervisionForm? parentForm;
-      for (final form in state.forms) {
-        if (form.visits?.any((v) => v.id == visitId) ?? false) {
-          parentForm = form;
-          break;
-        }
-      }
-
-      if (parentForm == null) return null;
-
-      final visits = await _dbHelper.getVisitsByFormId(parentForm.id!);
-      final visit = visits.firstWhere((v) => v.id == visitId);
-      
-      // Load all sections
-      final adminManagement = await _dbHelper.getVisitSection(
-        'visit_admin_management_responses',
-        visitId,
-      );
-      final logistics = await _dbHelper.getVisitSection(
-        'visit_logistics_responses',
-        visitId,
-      );
-      final equipment = await _dbHelper.getVisitSection(
-        'visit_equipment_responses',
-        visitId,
-      );
-      final mhdcManagement = await _dbHelper.getVisitSection(
-        'visit_mhdc_management_responses',
-        visitId,
-      );
-      final serviceStandards = await _dbHelper.getVisitSection(
-        'visit_service_standards_responses',
-        visitId,
-      );
-      final healthInformation = await _dbHelper.getVisitSection(
-        'visit_health_information_responses',
-        visitId,
-      );
-      final integration = await _dbHelper.getVisitSection(
-        'visit_integration_responses',
-        visitId,
-      );
-
-      return visit.copyWith(
-        adminManagement: adminManagement,
-        logistics: logistics,
-        equipment: equipment,
-        mhdcManagement: mhdcManagement,
-        serviceStandards: serviceStandards,
-        healthInformation: healthInformation,
-        integration: integration,
-      );
+      return await _dbHelper.getCompleteVisit(visitId);
     } catch (e) {
       state = state.copyWith(error: 'Failed to load visit details: $e');
       return null;
+    }
+  }
+
+  // Update visit with comprehensive section support
+  Future<bool> updateVisit({
+    required SupervisionVisit visit,
+    AdminManagementData? adminManagement,
+    LogisticsData? logistics,
+    EquipmentData? equipment,
+    MhdcManagementData? mhdcManagement,
+    ServiceStandardsData? serviceStandards,
+    HealthInformationData? healthInformation,
+    IntegrationData? integration,
+    List<MedicineDetail>? medicineDetails,
+    PatientVolumes? patientVolumes,
+    List<EquipmentFunctionality>? equipmentFunctionality,
+    QualityAssurance? qualityAssurance,
+  }) async {
+    try {
+      // Check if visit can be edited (not synced)
+      if (visit.syncStatus != 'local') {
+        state = state.copyWith(error: 'Cannot edit synced visit');
+        return false;
+      }
+
+      await _dbHelper.updateVisit(visit);
+
+      // Update section data - delete existing sections and insert new
+      final visitId = visit.id!;
+      
+      // Clear existing section data (but keep the visit record)
+      final tables = [
+        'visit_admin_management_responses',
+        'visit_logistics_responses', 
+        'visit_equipment_responses',
+        'visit_mhdc_management_responses',
+        'visit_service_standards_responses',
+        'visit_health_information_responses',
+        'visit_integration_responses',
+        'visit_medicine_details',
+        'visit_patient_volumes',
+        'visit_equipment_functionality',
+        'visit_quality_assurance'
+      ];
+      
+      final db = await _dbHelper.database;
+      for (final table in tables) {
+        await db.delete(table, where: 'visit_id = ?', whereArgs: [visitId]);
+      }
+      
+      // Insert updated section data
+      if (adminManagement != null) {
+        await _dbHelper.insertAdminManagement(visitId, adminManagement);
+      }
+      
+      if (logistics != null) {
+        await _dbHelper.insertLogistics(visitId, logistics);
+      }
+      
+      if (equipment != null) {
+        await _dbHelper.insertEquipment(visitId, equipment);
+      }
+      
+      if (mhdcManagement != null) {
+        await _dbHelper.insertMhdcManagement(visitId, mhdcManagement);
+      }
+      
+      if (serviceStandards != null) {
+        await _dbHelper.insertServiceStandards(visitId, serviceStandards);
+      }
+      
+      if (healthInformation != null) {
+        await _dbHelper.insertHealthInformation(visitId, healthInformation);
+      }
+      
+      if (integration != null) {
+        await _dbHelper.insertIntegration(visitId, integration);
+      }
+
+      if (medicineDetails != null && medicineDetails.isNotEmpty) {
+        await _dbHelper.insertMedicineDetails(visitId, medicineDetails);
+      }
+
+      if (patientVolumes != null) {
+        await _dbHelper.insertPatientVolumes(visitId, patientVolumes);
+      }
+
+      if (equipmentFunctionality != null && equipmentFunctionality.isNotEmpty) {
+        await _dbHelper.insertEquipmentFunctionality(visitId, equipmentFunctionality);
+      }
+
+      if (qualityAssurance != null) {
+        await _dbHelper.insertQualityAssurance(visitId, qualityAssurance);
+      }
+
+      await loadForms();
+      
+      // Refresh the selected form if needed
+      if (state.selectedForm?.id == visit.formId) {
+        await getFormDetails(visit.formId);
+      }
+      
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Failed to update visit: $e');
+      return false;
     }
   }
 
@@ -652,6 +714,33 @@ class SyncNotifier extends StateNotifier<SyncState> {
   }
 }
 
+// DIO provider for dependency injection
+class DioProvider {
+  static Dio createDio() {
+    final dio = Dio();
+    
+    // Add interceptors, base URL, timeouts, etc.
+    dio.options.baseUrl = AppConfigExtension.effectiveBaseUrl;
+    dio.options.connectTimeout = const Duration(seconds: 30);
+    dio.options.receiveTimeout = const Duration(seconds: 30);
+    
+    // Add authentication interceptor
+    dio.interceptors.add(AuthInterceptor());
+    
+    // Add logging interceptor in debug mode
+    dio.interceptors.add(LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: true,
+      responseHeader: false,
+      responseBody: true,
+      error: true,
+    ));
+    
+    return dio;
+  }
+}
+
 // Providers
 final dioProvider = Provider<Dio>((ref) {
   return DioProvider.createDio();
@@ -676,3 +765,4 @@ final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
   final syncService = ref.watch(syncServiceProvider);
   return SyncNotifier(syncService);
 });
+    

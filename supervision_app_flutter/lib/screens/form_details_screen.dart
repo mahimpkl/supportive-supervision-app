@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/forms_provider.dart';
 import '../models/supervision_form_model.dart';
+import '../models/supervision_visit.dart';
+import '../models/staff_training_data.dart';
 import 'create_visit_screen.dart';
 import 'visit_details_screen.dart';
 import 'edit_form_screen.dart';
@@ -262,7 +264,7 @@ class _FormDetailsScreenState extends ConsumerState<FormDetailsScreen> {
     );
   }
 
-  Widget _buildStaffTrainingCard(Map<String, dynamic> staffTraining) {
+  Widget _buildStaffTrainingCard(StaffTrainingData staffTraining) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -277,22 +279,16 @@ class _FormDetailsScreenState extends ConsumerState<FormDetailsScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _buildStaffTrainingRow('HA', staffTraining),
-            _buildStaffTrainingRow('Sr. AHW', staffTraining, prefix: 'sr_ahw'),
-            _buildStaffTrainingRow('AHW', staffTraining),
+            _buildStaffTrainingRow('HA', staffTraining.haTotalStaff ?? 0, staffTraining.haMhdcTrained ?? 0, staffTraining.haFenTrained ?? 0, staffTraining.haOtherNcdTrained ?? 0),
+            _buildStaffTrainingRow('Sr. AHW', staffTraining.srAhwTotalStaff ?? 0, staffTraining.srAhwMhdcTrained ?? 0, staffTraining.srAhwFenTrained ?? 0, staffTraining.srAhwOtherNcdTrained ?? 0),
+            _buildStaffTrainingRow('AHW', staffTraining.ahwTotalStaff ?? 0, staffTraining.ahwMhdcTrained ?? 0, staffTraining.ahwFenTrained ?? 0, staffTraining.ahwOtherNcdTrained ?? 0),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStaffTrainingRow(String role, Map<String, dynamic> data, {String? prefix}) {
-    final rolePrefix = prefix ?? role.toLowerCase().replaceAll(' ', '_').replaceAll('.', '');
-    final total = data['${rolePrefix}_total_staff'] ?? 0;
-    final mhdc = data['${rolePrefix}_mhdc_trained'] ?? 0;
-    final fen = data['${rolePrefix}_fen_trained'] ?? 0;
-    final other = data['${rolePrefix}_other_ncd_trained'] ?? 0;
-
+  Widget _buildStaffTrainingRow(String role, int total, int mhdc, int fen, int other) {
     if (total == 0) return const SizedBox();
 
     return Padding(
