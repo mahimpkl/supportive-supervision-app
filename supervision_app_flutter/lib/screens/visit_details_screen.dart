@@ -218,7 +218,7 @@ class _VisitDetailsScreenState extends ConsumerState<VisitDetailsScreen>
     if (visit.adminManagement != null) completedSections++;
     if (visit.logistics != null) completedSections++;
     if (visit.equipment != null) completedSections++;
-    if (visit.mhdcManagement != null) completedSections++;
+    if (visit.khdcManagement != null) completedSections++;
     if (visit.serviceStandards != null) completedSections++;
     if (visit.healthInformation != null) completedSections++;
     if (visit.integration != null) completedSections++;
@@ -287,7 +287,7 @@ class _VisitDetailsScreenState extends ConsumerState<VisitDetailsScreen>
       },
       {
         'name': 'MHDC Management',
-        'data': visit.mhdcManagement,
+        'data': visit.khdcManagement,
         'icon': Icons.health_and_safety,
       },
       {
@@ -699,7 +699,7 @@ class _VisitDetailsScreenState extends ConsumerState<VisitDetailsScreen>
   }
 
   Widget _buildMhdcManagementTab() {
-    final data = _visitDetails?.mhdcManagement;
+    final data = _visitDetails?.khdcManagement;
     if (data == null) {
       return _buildSectionDetailTab('MHDC Management', []);
     }

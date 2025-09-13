@@ -187,14 +187,11 @@ router.get('/:id/visits/:visitNumber', validateId, validateVisitNumber, async (r
       adminManagement: await getVisitAdminManagementResponses(visit.id),
       logistics: await getVisitLogisticsResponses(visit.id),
       equipment: await getVisitEquipmentResponses(visit.id),
-      mhdcManagement: await getVisitMhdcManagementResponses(visit.id),
+      khdcManagement: await getVisitKhdcManagementResponses(visit.id),
       serviceStandards: await getVisitServiceStandardsResponses(visit.id),
       healthInformation: await getVisitHealthInformationResponses(visit.id),
       integration: await getVisitIntegrationResponses(visit.id),
-      medicineDetails: await getVisitMedicineDetails(visit.id),
-      patientVolumes: await getVisitPatientVolumes(visit.id),
-      equipmentFunctionality: await getVisitEquipmentFunctionality(visit.id),
-      qualityAssurance: await getVisitQualityAssurance(visit.id)
+     
     };
 
     res.json({ visit: visitData });
@@ -268,14 +265,11 @@ router.get('/:id', validateId, async (req, res, next) => {
         adminManagement: await getVisitAdminManagementResponses(visit.id),
         logistics: await getVisitLogisticsResponses(visit.id),
         equipment: await getVisitEquipmentResponses(visit.id),
-        mhdcManagement: await getVisitMhdcManagementResponses(visit.id),
+        khdcManagement: await getVisitKhdcManagementResponses(visit.id),
         serviceStandards: await getVisitServiceStandardsResponses(visit.id),
         healthInformation: await getVisitHealthInformationResponses(visit.id),
         integration: await getVisitIntegrationResponses(visit.id),
-        medicineDetails: await getVisitMedicineDetails(visit.id),
-        patientVolumes: await getVisitPatientVolumes(visit.id),
-        equipmentFunctionality: await getVisitEquipmentFunctionality(visit.id),
-        qualityAssurance: await getVisitQualityAssurance(visit.id)
+       
       };
       visits.push(visitData);
     }
@@ -366,14 +360,11 @@ router.post('/:id/visits', validateId, validateVisit, async (req, res, next) => 
       adminManagement,
       logistics,
       equipment,
-      mhdcManagement,
+      khdcManagement,
       serviceStandards,
       healthInformation,
       integration,
-      medicineDetails,
-      patientVolumes,
-      equipmentFunctionality,
-      qualityAssurance
+     
     } = req.body;
 
     // Check if form exists and user has permission
@@ -442,22 +433,11 @@ router.post('/:id/visits', validateId, validateVisit, async (req, res, next) => 
       if (adminManagement) await insertVisitAdminManagementResponses(client, visitId, adminManagement);
       if (logistics) await insertVisitLogisticsResponses(client, visitId, logistics);
       if (equipment) await insertVisitEquipmentResponses(client, visitId, equipment);
-      if (mhdcManagement) await insertVisitMhdcManagementResponses(client, visitId, mhdcManagement);
+      if (khdcManagement) await insertVisitKhdcManagementResponses(client, visitId, khdcManagement);
       if (serviceStandards) await insertVisitServiceStandardsResponses(client, visitId, serviceStandards);
       if (healthInformation) await insertVisitHealthInformationResponses(client, visitId, healthInformation);
       if (integration) await insertVisitIntegrationResponses(client, visitId, integration);
-      if (medicineDetails && Array.isArray(medicineDetails)) {
-        for (const medicine of medicineDetails) {
-          await insertVisitMedicineDetail(client, visitId, medicine);
-        }
-      }
-      if (patientVolumes) await insertVisitPatientVolumes(client, visitId, patientVolumes);
-      if (equipmentFunctionality && Array.isArray(equipmentFunctionality)) {
-        for (const equipment of equipmentFunctionality) {
-          await insertVisitEquipmentFunctionality(client, visitId, equipment);
-        }
-      }
-      if (qualityAssurance) await insertVisitQualityAssurance(client, visitId, qualityAssurance);
+     
 
       // Update form's updated_at timestamp
       await client.query(
@@ -642,8 +622,8 @@ async function getVisitEquipmentResponses(visitId) {
   return result.rows[0] || null;
 }
 
-async function getVisitMhdcManagementResponses(visitId) {
-  const result = await db.query('SELECT * FROM visit_mhdc_management_responses WHERE visit_id = $1', [visitId]);
+async function getVisitKhdcManagementResponses(visitId) {
+  const result = await db.query('SELECT * FROM visit_khdc_management_responses WHERE visit_id = $1', [visitId]);
   return result.rows[0] || null;
 }
 
@@ -662,26 +642,6 @@ async function getVisitIntegrationResponses(visitId) {
   return result.rows[0] || null;
 }
 
-async function getVisitMedicineDetails(visitId) {
-  const result = await db.query('SELECT * FROM visit_medicine_details WHERE visit_id = $1 ORDER BY medicine_name', [visitId]);
-  return result.rows;
-}
-
-async function getVisitPatientVolumes(visitId) {
-  const result = await db.query('SELECT * FROM visit_patient_volumes WHERE visit_id = $1', [visitId]);
-  return result.rows[0] || null;
-}
-
-async function getVisitEquipmentFunctionality(visitId) {
-  const result = await db.query('SELECT * FROM visit_equipment_functionality WHERE visit_id = $1 ORDER BY equipment_name', [visitId]);
-  return result.rows;
-}
-
-async function getVisitQualityAssurance(visitId) {
-  const result = await db.query('SELECT * FROM visit_quality_assurance WHERE visit_id = $1', [visitId]);
-  return result.rows[0] || null;
-}
-
 // Helper functions for inserting form-level data
 async function insertStaffTraining(client, formId, data) {
   if (!data) return;
@@ -689,31 +649,26 @@ async function insertStaffTraining(client, formId, data) {
   const query = `
     INSERT INTO form_staff_training (
       form_id, 
-      ha_total_staff, ha_mhdc_trained, ha_fen_trained, ha_other_ncd_trained,
-      sr_ahw_total_staff, sr_ahw_mhdc_trained, sr_ahw_fen_trained, sr_ahw_other_ncd_trained,
-      ahw_total_staff, ahw_mhdc_trained, ahw_fen_trained, ahw_other_ncd_trained,
-      sr_anm_total_staff, sr_anm_mhdc_trained, sr_anm_fen_trained, sr_anm_other_ncd_trained,
-      anm_total_staff, anm_mhdc_trained, anm_fen_trained, anm_other_ncd_trained,
-      others_total_staff, others_mhdc_trained, others_fen_trained, others_other_ncd_trained,
-      last_mhdc_training_date, last_fen_training_date, last_other_training_date, 
-      training_provider, training_certificates_verified
+      ha_total_staff, ha_khdc_trained, ha_fen_trained, ha_other_ncd_trained,
+      sr_ahw_total_staff, sr_ahw_khdc_trained, sr_ahw_fen_trained, sr_ahw_other_ncd_trained,
+      ahw_total_staff, ahw_khdc_trained, ahw_fen_trained, ahw_other_ncd_trained,
+      sr_anm_total_staff, sr_anm_khdc_trained, sr_anm_fen_trained, sr_anm_other_ncd_trained,
+      anm_total_staff, anm_khdc_trained, anm_fen_trained, anm_other_ncd_trained,
+      others_total_staff, others_khdc_trained, others_fen_trained, others_other_ncd_trained
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-      $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25,
-      $26, $27, $28, $29, $30
+      $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
     )
   `;
   
   return client.query(query, [
     formId,
-    data.ha_total_staff || 0, data.ha_mhdc_trained || 0, data.ha_fen_trained || 0, data.ha_other_ncd_trained || 0,
-    data.sr_ahw_total_staff || 0, data.sr_ahw_mhdc_trained || 0, data.sr_ahw_fen_trained || 0, data.sr_ahw_other_ncd_trained || 0,
-    data.ahw_total_staff || 0, data.ahw_mhdc_trained || 0, data.ahw_fen_trained || 0, data.ahw_other_ncd_trained || 0,
-    data.sr_anm_total_staff || 0, data.sr_anm_mhdc_trained || 0, data.sr_anm_fen_trained || 0, data.sr_anm_other_ncd_trained || 0,
-    data.anm_total_staff || 0, data.anm_mhdc_trained || 0, data.anm_fen_trained || 0, data.anm_other_ncd_trained || 0,
-    data.others_total_staff || 0, data.others_mhdc_trained || 0, data.others_fen_trained || 0, data.others_other_ncd_trained || 0,
-    data.last_mhdc_training_date || null, data.last_fen_training_date || null, data.last_other_training_date || null,
-    data.training_provider || null, data.training_certificates_verified || false
+    data.ha_total_staff || 0, data.ha_khdc_trained || 0, data.ha_fen_trained || 0, data.ha_other_ncd_trained || 0,
+    data.sr_ahw_total_staff || 0, data.sr_ahw_khdc_trained || 0, data.sr_ahw_fen_trained || 0, data.sr_ahw_other_ncd_trained || 0,
+    data.ahw_total_staff || 0, data.ahw_khdc_trained || 0, data.ahw_fen_trained || 0, data.ahw_other_ncd_trained || 0,
+    data.sr_anm_total_staff || 0, data.sr_anm_khdc_trained || 0, data.sr_anm_fen_trained || 0, data.sr_anm_other_ncd_trained || 0,
+    data.anm_total_staff || 0, data.anm_khdc_trained || 0, data.anm_fen_trained || 0, data.anm_other_ncd_trained || 0,
+    data.others_total_staff || 0, data.others_khdc_trained || 0, data.others_fen_trained || 0, data.others_other_ncd_trained || 0
   ]);
 }
 
@@ -942,11 +897,11 @@ async function insertVisitEquipmentResponses(client, visitId, data) {
   ]);
 }
 
-async function insertVisitMhdcManagementResponses(client, visitId, data) {
+async function insertVisitKhdcManagementResponses(client, visitId, data) {
   if (!data) return;
   
   const query = `
-    INSERT INTO visit_mhdc_management_responses (
+    INSERT INTO visit_khdc_management_responses (
       visit_id, b6_response, b6_comment, b6_respondents_comment, b6_healthcare_workers_refer_easily, b6_kept_in_opd_use,
       b7_response, b7_comment, b7_respondents_comment, b7_available_at_health_center,
       b8_response, b8_comment, b8_respondents_comment, b8_available_and_filled_properly,
@@ -1081,151 +1036,7 @@ async function insertVisitIntegrationResponses(client, visitId, data) {
   ]);
 }
 
-async function insertVisitMedicineDetail(client, visitId, medicine) {
-  if (!medicine) return;
-  
-  const query = `
-    INSERT INTO visit_medicine_details (
-      visit_id, medicine_name, medicine_category, availability, quantity_available,
-      unit_of_measurement, expiry_date, batch_number, storage_temperature_ok, 
-      storage_humidity_ok, storage_location, procurement_source, cost_per_unit,
-      last_restocked_date, minimum_stock_level, stock_out_frequency, quality_issues_noted
-    ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
-    )
-  `;
-  
-  return client.query(query, [
-    visitId,
-    medicine.medicine_name || null,
-    medicine.medicine_category || null,
-    medicine.availability || null,
-    medicine.quantity_available || null,
-    medicine.unit_of_measurement || null,
-    medicine.expiry_date || null,
-    medicine.batch_number || null,
-    medicine.storage_temperature_ok || false,
-    medicine.storage_humidity_ok || false,
-    medicine.storage_location || null,
-    medicine.procurement_source || null,
-    medicine.cost_per_unit || null,
-    medicine.last_restocked_date || null,
-    medicine.minimum_stock_level || null,
-    medicine.stock_out_frequency || null,
-    medicine.quality_issues_noted || null
-  ]);
-}
 
-async function insertVisitPatientVolumes(client, visitId, data) {
-  if (!data) return;
-  
-  const query = `
-    INSERT INTO visit_patient_volumes (
-      visit_id, total_patients_seen, ncd_patients_new, ncd_patients_followup,
-      diabetes_patients, hypertension_patients, copd_patients, cardiovascular_patients,
-      other_ncd_patients, referrals_made, referrals_received, emergency_cases,
-      month_year, data_source, data_verified
-    ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-    )
-  `;
-  
-  return client.query(query, [
-    visitId,
-    data.total_patients_seen || null,
-    data.ncd_patients_new || null,
-    data.ncd_patients_followup || null,
-    data.diabetes_patients || null,
-    data.hypertension_patients || null,
-    data.copd_patients || null,
-    data.cardiovascular_patients || null,
-    data.other_ncd_patients || null,
-    data.referrals_made || null,
-    data.referrals_received || null,
-    data.emergency_cases || null,
-    data.month_year || null,
-    data.data_source || null,
-    data.data_verified || false
-  ]);
-}
-
-async function insertVisitEquipmentFunctionality(client, visitId, equipment) {
-  if (!equipment) return;
-  
-  const query = `
-    INSERT INTO visit_equipment_functionality (
-      visit_id, equipment_name, equipment_category, brand_model, serial_number,
-      availability, functionality_status, last_calibration_date, calibration_due_date,
-      maintenance_schedule, usage_frequency, staff_trained_on_equipment,
-      user_manual_available, spare_parts_available, warranty_status, issues_noted,
-      repair_history, procurement_date, cost, funding_source
-    ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
-    )
-  `;
-  
-  return client.query(query, [
-    visitId,
-    equipment.equipment_name || null,
-    equipment.equipment_category || null,
-    equipment.brand_model || null,
-    equipment.serial_number || null,
-    equipment.availability || null,
-    equipment.functionality_status || null,
-    equipment.last_calibration_date || null,
-    equipment.calibration_due_date || null,
-    equipment.maintenance_schedule || null,
-    equipment.usage_frequency || null,
-    equipment.staff_trained_on_equipment || false,
-    equipment.user_manual_available || false,
-    equipment.spare_parts_available || false,
-    equipment.warranty_status || null,
-    equipment.issues_noted || null,
-    equipment.repair_history || null,
-    equipment.procurement_date || null,
-    equipment.cost || null,
-    equipment.funding_source || null
-  ]);
-}
-
-async function insertVisitQualityAssurance(client, visitId, data) {
-  if (!data) return;
-  
-  const query = `
-    INSERT INTO visit_quality_assurance (
-      visit_id, guidelines_followed, protocols_updated, clinical_audit_conducted,
-      patient_satisfaction_assessed, records_complete, documentation_legible,
-      consent_forms_used, privacy_maintained, infection_control_practices,
-      hand_hygiene_facilities, emergency_procedures_known, adverse_events_reported,
-      staff_knowledge_adequate, continuing_education_provided, supervision_regular,
-      overall_quality_score, areas_for_improvement, good_practices_observed
-    ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
-    )
-  `;
-  
-  return client.query(query, [
-    visitId,
-    data.guidelines_followed || false,
-    data.protocols_updated || false,
-    data.clinical_audit_conducted || false,
-    data.patient_satisfaction_assessed || false,
-    data.records_complete || false,
-    data.documentation_legible || false,
-    data.consent_forms_used || false,
-    data.privacy_maintained || false,
-    data.infection_control_practices || false,
-    data.hand_hygiene_facilities || false,
-    data.emergency_procedures_known || false,
-    data.adverse_events_reported || false,
-    data.staff_knowledge_adequate || false,
-    data.continuing_education_provided || false,
-    data.supervision_regular || false,
-    data.overall_quality_score || null,
-    data.areas_for_improvement || null,
-    data.good_practices_observed || null
-  ]);
-}
 
 // Helper functions for updating visit section data
 async function updateVisitAdminManagementResponses(client, visitId, data) {

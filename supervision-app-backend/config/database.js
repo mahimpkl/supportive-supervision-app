@@ -1,3 +1,8 @@
+// Add this at the very top of config/database.js
+// With this:
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
 const { Pool } = require('pg');
 
 // Database configuration
@@ -6,13 +11,21 @@ const dbConfig = {
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'supervision_app',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle
-  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
+  password: String(process.env.DB_PASSWORD || ''), // Explicit string conversion
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 };
 
+// Add this validation
+if (!process.env.DB_PASSWORD) {
+  console.error('❌ DB_PASSWORD not found. Check your .env file.');
+  console.error('Current working directory:', process.cwd());
+  process.exit(1);
+}
+
 const pool = new Pool(dbConfig);
+
 
 // Handle pool errors
 pool.on('error', (err) => {

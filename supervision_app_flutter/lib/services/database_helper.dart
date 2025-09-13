@@ -4,18 +4,13 @@ import 'package:uuid/uuid.dart';
 import '../models/supervision_form_model.dart';
 import '../models/supervision_visit.dart';
 import '../models/staff_training_data.dart';
-import '../models/infrastructure_data.dart';
 import '../models/admin_management_data.dart';
 import '../models/logistics_data.dart';
 import '../models/equipment_data.dart';
-import '../models/mhdc_management_data.dart';
+import '../models/khdc_management_data.dart';
 import '../models/service_standards_data.dart';
 import '../models/health_information_data.dart';
 import '../models/integration_data.dart';
-import '../models/medicine_detail.dart';
-import '../models/patient_volumes.dart';
-import '../models/equipment_functionality.dart';
-import '../models/quality_assurance.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -35,28 +30,231 @@ class DatabaseHelper {
     
     return await openDatabase(
       path,
-      version: 4, // Increment version for comprehensive schema update
+      version: 5, // Increment to version 5 for KHDC migration
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 4) {
+    if (oldVersion < 5) {
+      // Migrate MHDC to KHDC and remove unnecessary tables/fields
+      await _migrateToVersion5(db);
+    } else if (oldVersion < 4) {
       // Drop all existing tables to recreate with comprehensive schema
       await _dropAllTables(db);
       await _onCreate(db, newVersion);
     }
   }
 
+  Future<void> _migrateToVersion5(Database db) async {
+    try {
+      // 1. Update staff training table - rename MHDC to KHDC columns
+      final staffTrainingColumns = [
+        'ha_mhdc_trained',
+        'sr_ahw_mhdc_trained', 
+        'ahw_mhdc_trained',
+        'sr_anm_mhdc_trained',
+        'anm_mhdc_trained',
+        'others_mhdc_trained'
+      ];
+
+      for (final oldColumn in staffTrainingColumns) {
+        final newColumn = oldColumn.replaceAll('mhdc', 'khdc');
+        try {
+          await db.execute('ALTER TABLE form_staff_training RENAME COLUMN $oldColumn TO $newColumn');
+        } catch (e) {
+          print('Could not rename $oldColumn to $newColumn: $e');
+        }
+      }
+
+      // 2. Remove unnecessary columns from staff training
+      final columnsToRemove = [
+        'last_mhdc_training_date',
+        'last_fen_training_date', 
+        'last_other_training_date',
+        'training_provider',
+        'training_certificates_verified'
+      ];
+      
+      for (final column in columnsToRemove) {
+        try {
+          // Create new table without the unwanted columns
+          await _recreateStaffTrainingTable(db);
+          break; // Only need to do this once
+        } catch (e) {
+          print('Warning: Could not remove columns: $e');
+        }
+      }
+
+      // 3. Rename MHDC management table to KHDC
+      try {
+        await db.execute('ALTER TABLE visit_mhdc_management_responses RENAME TO visit_khdc_management_responses');
+      } catch (e) {
+        print('Could not rename MHDC table: $e');
+      }
+
+      // 4. Remove _units columns from logistics table
+      await _removeUnitsColumnsFromLogistics(db);
+
+      // 5. Remove _units columns from equipment table  
+      await _removeUnitsColumnsFromEquipment(db);
+
+      // 6. Drop unnecessary tables
+      final tablesToDrop = [
+        'visit_medicine_details',
+        'visit_patient_volumes', 
+        'visit_equipment_functionality',
+        'visit_quality_assurance'
+      ];
+      
+      for (final table in tablesToDrop) {
+        await db.execute('DROP TABLE IF EXISTS $table');
+      }
+
+    } catch (e) {
+      print('Migration error: $e');
+      // If migration fails, recreate all tables
+      await _dropAllTables(db);
+      await _onCreate(db, 5);
+    }
+  }
+
+  Future<void> _recreateStaffTrainingTable(Database db) async {
+    // Create backup
+    await db.execute('''
+      CREATE TABLE form_staff_training_backup AS 
+      SELECT 
+        id, form_id, ha_total_staff, ha_khdc_trained, ha_fen_trained, ha_other_ncd_trained,
+        sr_ahw_total_staff, sr_ahw_khdc_trained, sr_ahw_fen_trained, sr_ahw_other_ncd_trained,
+        ahw_total_staff, ahw_khdc_trained, ahw_fen_trained, ahw_other_ncd_trained,
+        sr_anm_total_staff, sr_anm_khdc_trained, sr_anm_fen_trained, sr_anm_other_ncd_trained,
+        anm_total_staff, anm_khdc_trained, anm_fen_trained, anm_other_ncd_trained,
+        others_total_staff, others_khdc_trained, others_fen_trained, others_other_ncd_trained,
+        created_at, updated_at
+      FROM form_staff_training
+    ''');
+
+    // Drop old table
+    await db.execute('DROP TABLE form_staff_training');
+
+    // Create new table with correct schema
+    await db.execute('''
+      CREATE TABLE form_staff_training (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_id INTEGER NOT NULL,
+        ha_total_staff INTEGER,
+        ha_khdc_trained INTEGER,
+        ha_fen_trained INTEGER,
+        ha_other_ncd_trained INTEGER,
+        sr_ahw_total_staff INTEGER,
+        sr_ahw_khdc_trained INTEGER,
+        sr_ahw_fen_trained INTEGER,
+        sr_ahw_other_ncd_trained INTEGER,
+        ahw_total_staff INTEGER,
+        ahw_khdc_trained INTEGER,
+        ahw_fen_trained INTEGER,
+        ahw_other_ncd_trained INTEGER,
+        sr_anm_total_staff INTEGER,
+        sr_anm_khdc_trained INTEGER,
+        sr_anm_fen_trained INTEGER,
+        sr_anm_other_ncd_trained INTEGER,
+        anm_total_staff INTEGER,
+        anm_khdc_trained INTEGER,
+        anm_fen_trained INTEGER,
+        anm_other_ncd_trained INTEGER,
+        others_total_staff INTEGER,
+        others_khdc_trained INTEGER,
+        others_fen_trained INTEGER,
+        others_other_ncd_trained INTEGER,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (form_id) REFERENCES supervision_forms (id)
+      )
+    ''');
+
+    // Restore data
+    await db.execute('''
+      INSERT INTO form_staff_training SELECT * FROM form_staff_training_backup
+    ''');
+
+    // Drop backup
+    await db.execute('DROP TABLE form_staff_training_backup');
+  }
+
+  Future<void> _removeUnitsColumnsFromLogistics(Database db) async {
+    final medicineList = [
+      'amlodipine_5_10mg', 'enalapril_2_5_10mg', 'losartan_25_50mg',
+      'hydrochlorothiazide_12_5_25mg', 'chlorthalidone_6_25_12_5mg',
+      'other_antihypertensives', 'atorvastatin_5mg', 'atorvastatin_10mg',
+      'atorvastatin_20mg', 'other_statins', 'metformin_500mg', 'metformin_1000mg',
+      'glimepiride_1_2mg', 'gliclazide_40_80mg', 'glipizide_2_5_5mg',
+      'sitagliptin_50mg', 'pioglitazone_5mg', 'empagliflozin_10mg',
+      'insulin_soluble_inj', 'insulin_nph_inj', 'other_hypoglycemic_agents',
+      'dextrose_25_solution', 'aspirin_75mg', 'clopidogrel_75mg',
+      'metoprolol_succinate_12_5_25_50mg', 'isosorbide_dinitrate_5mg', 'other_drugs',
+      'amoxicillin_clavulanic_potassium_625mg', 'azithromycin_500mg', 'other_antibiotics',
+      'salbutamol_dpi', 'salbutamol', 'ipratropium', 'tiotropium_bromide',
+      'formoterol', 'other_bronchodilators', 'prednisolone_5_10_20mg', 'other_steroids_oral'
+    ];
+
+    // Get existing columns
+    final existingColumns = await _getTableColumns(db, 'visit_logistics_responses');
+    
+    // Build new table without _units columns
+    final columnsToKeep = existingColumns.where((col) => !col.endsWith('_units')).toList();
+    
+    if (columnsToKeep.length < existingColumns.length) {
+      await _recreateLogisticsTable(db, columnsToKeep);
+    }
+  }
+
+  Future<void> _removeUnitsColumnsFromEquipment(Database db) async {
+    final existingColumns = await _getTableColumns(db, 'visit_equipment_responses');
+    final columnsToKeep = existingColumns.where((col) => !col.endsWith('_units')).toList();
+    
+    if (columnsToKeep.length < existingColumns.length) {
+      await _recreateEquipmentTable(db, columnsToKeep);
+    }
+  }
+
+  Future<List<String>> _getTableColumns(Database db, String tableName) async {
+    final result = await db.rawQuery("PRAGMA table_info($tableName)");
+    return result.map((row) => row['name'] as String).toList();
+  }
+
+  Future<void> _recreateLogisticsTable(Database db, List<String> columnsToKeep) async {
+    // Create backup with only needed columns
+    final columnList = columnsToKeep.join(', ');
+    await db.execute('CREATE TABLE visit_logistics_responses_backup AS SELECT $columnList FROM visit_logistics_responses');
+    
+    // Drop and recreate table
+    await db.execute('DROP TABLE visit_logistics_responses');
+    await _createLogisticsTable(db);
+    
+    // Restore data
+    await db.execute('INSERT INTO visit_logistics_responses ($columnList) SELECT $columnList FROM visit_logistics_responses_backup');
+    await db.execute('DROP TABLE visit_logistics_responses_backup');
+  }
+
+  Future<void> _recreateEquipmentTable(Database db, List<String> columnsToKeep) async {
+    final columnList = columnsToKeep.join(', ');
+    await db.execute('CREATE TABLE visit_equipment_responses_backup AS SELECT $columnList FROM visit_equipment_responses');
+    
+    await db.execute('DROP TABLE visit_equipment_responses');
+    await _createEquipmentTable(db);
+    
+    await db.execute('INSERT INTO visit_equipment_responses ($columnList) SELECT $columnList FROM visit_equipment_responses_backup');
+    await db.execute('DROP TABLE visit_equipment_responses_backup');
+  }
+
   Future<void> _dropAllTables(Database db) async {
     final tables = [
       'supervision_forms', 'supervision_visits', 'form_staff_training', 'form_infrastructure',
       'visit_admin_management_responses', 'visit_logistics_responses', 'visit_equipment_responses',
-      'visit_mhdc_management_responses', 'visit_service_standards_responses', 
-      'visit_health_information_responses', 'visit_integration_responses',
-      'visit_medicine_details', 'visit_patient_volumes', 'visit_equipment_functionality',
-      'visit_quality_assurance'
+      'visit_khdc_management_responses', 'visit_mhdc_management_responses', // Keep both during migration
+      'visit_service_standards_responses', 
+      'visit_health_information_responses', 'visit_integration_responses'
     ];
     
     for (final table in tables) {
@@ -111,47 +309,42 @@ class DatabaseHelper {
   }
 
   Future<void> _createFormDataTables(Database db) async {
-    // Staff Training table
+    // Staff Training table (updated with KHDC naming and removed fields)
     await db.execute('''
       CREATE TABLE form_staff_training (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         form_id INTEGER NOT NULL,
         ha_total_staff INTEGER,
-        ha_mhdc_trained INTEGER,
+        ha_khdc_trained INTEGER,
         ha_fen_trained INTEGER,
         ha_other_ncd_trained INTEGER,
         sr_ahw_total_staff INTEGER,
-        sr_ahw_mhdc_trained INTEGER,
+        sr_ahw_khdc_trained INTEGER,
         sr_ahw_fen_trained INTEGER,
         sr_ahw_other_ncd_trained INTEGER,
         ahw_total_staff INTEGER,
-        ahw_mhdc_trained INTEGER,
+        ahw_khdc_trained INTEGER,
         ahw_fen_trained INTEGER,
         ahw_other_ncd_trained INTEGER,
         sr_anm_total_staff INTEGER,
-        sr_anm_mhdc_trained INTEGER,
+        sr_anm_khdc_trained INTEGER,
         sr_anm_fen_trained INTEGER,
         sr_anm_other_ncd_trained INTEGER,
         anm_total_staff INTEGER,
-        anm_mhdc_trained INTEGER,
+        anm_khdc_trained INTEGER,
         anm_fen_trained INTEGER,
         anm_other_ncd_trained INTEGER,
         others_total_staff INTEGER,
-        others_mhdc_trained INTEGER,
+        others_khdc_trained INTEGER,
         others_fen_trained INTEGER,
         others_other_ncd_trained INTEGER,
-        last_mhdc_training_date TEXT,
-        last_fen_training_date TEXT,
-        last_other_training_date TEXT,
-        training_provider TEXT,
-        training_certificates_verified INTEGER,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (form_id) REFERENCES supervision_forms (id)
       )
     ''');
 
-    // Infrastructure table
+    // Infrastructure table (keeping as is)
     await db.execute('''
       CREATE TABLE form_infrastructure (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,248 +407,15 @@ class DatabaseHelper {
       )
     ''');
 
-    // Logistics table - comprehensive medicine tracking
-    await db.execute('''
-      CREATE TABLE visit_logistics_responses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        visit_id INTEGER NOT NULL,
-        -- Antihypertensives
-        amlodipine_5_10mg TEXT,
-        amlodipine_5_10mg_quantity INTEGER,
-        amlodipine_5_10mg_units TEXT,
-        enalapril_2_5_10mg TEXT,
-        enalapril_2_5_10mg_quantity INTEGER,
-        enalapril_2_5_10mg_units TEXT,
-        losartan_25_50mg TEXT,
-        losartan_25_50mg_quantity INTEGER,
-        losartan_25_50mg_units TEXT,
-        hydrochlorothiazide_12_5_25mg TEXT,
-        hydrochlorothiazide_12_5_25mg_quantity INTEGER,
-        hydrochlorothiazide_12_5_25mg_units TEXT,
-        chlorthalidone_6_25_12_5mg TEXT,
-        chlorthalidone_6_25_12_5mg_quantity INTEGER,
-        chlorthalidone_6_25_12_5mg_units TEXT,
-        other_antihypertensives TEXT,
-        other_antihypertensives_quantity INTEGER,
-        other_antihypertensives_units TEXT,
-        other_antihypertensives_specify TEXT,
-        -- Statins
-        atorvastatin_5mg TEXT,
-        atorvastatin_5mg_quantity INTEGER,
-        atorvastatin_5mg_units TEXT,
-        atorvastatin_10mg TEXT,
-        atorvastatin_10mg_quantity INTEGER,
-        atorvastatin_10mg_units TEXT,
-        atorvastatin_20mg TEXT,
-        atorvastatin_20mg_quantity INTEGER,
-        atorvastatin_20mg_units TEXT,
-        other_statins TEXT,
-        other_statins_quantity INTEGER,
-        other_statins_units TEXT,
-        other_statins_specify TEXT,
-        -- Diabetes medications
-        metformin_500mg TEXT,
-        metformin_500mg_quantity INTEGER,
-        metformin_500mg_units TEXT,
-        metformin_1000mg TEXT,
-        metformin_1000mg_quantity INTEGER,
-        metformin_1000mg_units TEXT,
-        glimepiride_1_2mg TEXT,
-        glimepiride_1_2mg_quantity INTEGER,
-        glimepiride_1_2mg_units TEXT,
-        gliclazide_40_80mg TEXT,
-        gliclazide_40_80mg_quantity INTEGER,
-        gliclazide_40_80mg_units TEXT,
-        glipizide_2_5_5mg TEXT,
-        glipizide_2_5_5mg_quantity INTEGER,
-        glipizide_2_5_5mg_units TEXT,
-        sitagliptin_50mg TEXT,
-        sitagliptin_50mg_quantity INTEGER,
-        sitagliptin_50mg_units TEXT,
-        pioglitazone_5mg TEXT,
-        pioglitazone_5mg_quantity INTEGER,
-        pioglitazone_5mg_units TEXT,
-        empagliflozin_10mg TEXT,
-        empagliflozin_10mg_quantity INTEGER,
-        empagliflozin_10mg_units TEXT,
-        insulin_soluble_inj TEXT,
-        insulin_soluble_inj_quantity INTEGER,
-        insulin_soluble_inj_units TEXT,
-        insulin_nph_inj TEXT,
-        insulin_nph_inj_quantity INTEGER,
-        insulin_nph_inj_units TEXT,
-        other_hypoglycemic_agents TEXT,
-        other_hypoglycemic_agents_quantity INTEGER,
-        other_hypoglycemic_agents_units TEXT,
-        other_hypoglycemic_agents_specify TEXT,
-        -- Emergency and cardiovascular
-        dextrose_25_solution TEXT,
-        dextrose_25_solution_quantity INTEGER,
-        dextrose_25_solution_units TEXT,
-        aspirin_75mg TEXT,
-        aspirin_75mg_quantity INTEGER,
-        aspirin_75mg_units TEXT,
-        clopidogrel_75mg TEXT,
-        clopidogrel_75mg_quantity INTEGER,
-        clopidogrel_75mg_units TEXT,
-        metoprolol_succinate_12_5_25_50mg TEXT,
-        metoprolol_succinate_12_5_25_50mg_quantity INTEGER,
-        metoprolol_succinate_12_5_25_50mg_units TEXT,
-        isosorbide_dinitrate_5mg TEXT,
-        isosorbide_dinitrate_5mg_quantity INTEGER,
-        isosorbide_dinitrate_5mg_units TEXT,
-        other_drugs TEXT,
-        other_drugs_quantity INTEGER,
-        other_drugs_units TEXT,
-        other_drugs_specify TEXT,
-        -- Antibiotics
-        amoxicillin_clavulanic_potassium_625mg TEXT,
-        amoxicillin_clavulanic_potassium_625mg_quantity INTEGER,
-        amoxicillin_clavulanic_potassium_625mg_units TEXT,
-        azithromycin_500mg TEXT,
-        azithromycin_500mg_quantity INTEGER,
-        azithromycin_500mg_units TEXT,
-        other_antibiotics TEXT,
-        other_antibiotics_quantity INTEGER,
-        other_antibiotics_units TEXT,
-        other_antibiotics_specify TEXT,
-        -- Respiratory
-        salbutamol_dpi TEXT,
-        salbutamol_dpi_quantity INTEGER,
-        salbutamol_dpi_units TEXT,
-        salbutamol TEXT,
-        salbutamol_quantity INTEGER,
-        salbutamol_units TEXT,
-        ipratropium TEXT,
-        ipratropium_quantity INTEGER,
-        ipratropium_units TEXT,
-        tiotropium_bromide TEXT,
-        tiotropium_bromide_quantity INTEGER,
-        tiotropium_bromide_units TEXT,
-        formoterol TEXT,
-        formoterol_quantity INTEGER,
-        formoterol_units TEXT,
-        other_bronchodilators TEXT,
-        other_bronchodilators_quantity INTEGER,
-        other_bronchodilators_units TEXT,
-        other_bronchodilators_specify TEXT,
-        prednisolone_5_10_20mg TEXT,
-        prednisolone_5_10_20mg_quantity INTEGER,
-        prednisolone_5_10_20mg_units TEXT,
-        other_steroids_oral TEXT,
-        other_steroids_oral_quantity INTEGER,
-        other_steroids_oral_units TEXT,
-        other_steroids_oral_specify TEXT,
-        -- B1-B5 responses
-        b1_response TEXT,
-        b1_comment TEXT,
-        b1_respondents_comment TEXT,
-        b1_validation_note TEXT,
-        b2_response TEXT,
-        b2_comment TEXT,
-        b2_respondents_comment TEXT,
-        b2_validation_note TEXT,
-        b2_random_records_checked INTEGER,
-        b2_explanation_if_not_in_use TEXT,
-        b3_response TEXT,
-        b3_comment TEXT,
-        b3_respondents_comment TEXT,
-        b3_validation_note TEXT,
-        b3_expiry_date_verified INTEGER,
-        b3_storage_conditions_verified INTEGER,
-        b4_response TEXT,
-        b4_comment TEXT,
-        b4_respondents_comment TEXT,
-        b4_validation_note TEXT,
-        b4_expiry_date_verified INTEGER,
-        b4_storage_conditions_verified INTEGER,
-        b5_response TEXT,
-        b5_comment TEXT,
-        b5_respondents_comment TEXT,
-        b5_validation_note TEXT,
-        -- Category-specific comments
-        antihypertensive_comments TEXT,
-        statin_comments TEXT,
-        diabetes_medication_comments TEXT,
-        cardiovascular_medication_comments TEXT,
-        respiratory_medication_comments TEXT,
-        -- Additional tracking
-        expiry_dates_checked INTEGER,
-        storage_conditions_verified INTEGER,
-        actions_agreed TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (visit_id) REFERENCES supervision_visits (id)
-      )
-    ''');
+    // Logistics table - without _units columns
+    await _createLogisticsTable(db);
 
-    // Equipment table - comprehensive equipment tracking
-    await db.execute('''
-      CREATE TABLE visit_equipment_responses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        visit_id INTEGER NOT NULL,
-        -- Equipment with quantities and units
-        sphygmomanometer TEXT,
-        sphygmomanometer_quantity INTEGER,
-        sphygmomanometer_units TEXT,
-        weighing_scale TEXT,
-        weighing_scale_quantity INTEGER,
-        weighing_scale_units TEXT,
-        measuring_tape TEXT,
-        measuring_tape_quantity INTEGER,
-        measuring_tape_units TEXT,
-        peak_expiratory_flow_meter TEXT,
-        peak_expiratory_flow_meter_quantity INTEGER,
-        peak_expiratory_flow_meter_units TEXT,
-        oxygen TEXT,
-        oxygen_quantity INTEGER,
-        oxygen_units TEXT,
-        oxygen_mask TEXT,
-        oxygen_mask_quantity INTEGER,
-        oxygen_mask_units TEXT,
-        nebulizer TEXT,
-        nebulizer_quantity INTEGER,
-        nebulizer_units TEXT,
-        pulse_oximetry TEXT,
-        pulse_oximetry_quantity INTEGER,
-        pulse_oximetry_units TEXT,
-        glucometer TEXT,
-        glucometer_quantity INTEGER,
-        glucometer_units TEXT,
-        glucometer_strips TEXT,
-        glucometer_strips_quantity INTEGER,
-        glucometer_strips_units TEXT,
-        lancets TEXT,
-        lancets_quantity INTEGER,
-        lancets_units TEXT,
-        urine_dipstick TEXT,
-        urine_dipstick_quantity INTEGER,
-        urine_dipstick_units TEXT,
-        ecg TEXT,
-        ecg_quantity INTEGER,
-        ecg_units TEXT,
-        other_equipment TEXT,
-        other_equipment_quantity INTEGER,
-        other_equipment_units TEXT,
-        other_equipment_specify TEXT,
-        stethoscope TEXT,
-        stethoscope_quantity INTEGER,
-        thermometer TEXT,
-        thermometer_quantity INTEGER,
-        examination_table TEXT,
-        examination_table_quantity INTEGER,
-        privacy_screen TEXT,
-        privacy_screen_quantity INTEGER,
-        actions_agreed TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (visit_id) REFERENCES supervision_visits (id)
-      )
-    ''');
+    // Equipment table - without _units columns
+    await _createEquipmentTable(db);
 
-    // MHDC Management table
+    // KHDC Management table (renamed from MHDC)
     await db.execute('''
-      CREATE TABLE visit_mhdc_management_responses (
+      CREATE TABLE visit_khdc_management_responses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         visit_id INTEGER NOT NULL,
         b6_response TEXT,
@@ -491,16 +451,14 @@ class DatabaseHelper {
       )
     ''');
 
-    // Service Standards table - comprehensive C2 sub-services
+    // Service Standards table
     await db.execute('''
       CREATE TABLE visit_service_standards_responses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         visit_id INTEGER NOT NULL,
-        -- C2 main response
         c2_main_response TEXT,
         c2_main_comment TEXT,
         c2_respondents_comment TEXT,
-        -- C2 sub-services
         c2_blood_pressure TEXT,
         c2_blood_pressure_comment TEXT,
         c2_blood_pressure_equipment_calibrated INTEGER,
@@ -537,7 +495,6 @@ class DatabaseHelper {
         c2_eye_examination_comment TEXT,
         c2_health_education TEXT,
         c2_health_education_comment TEXT,
-        -- C3-C7 responses
         c3_response TEXT,
         c3_comment TEXT,
         c3_respondents_comment TEXT,
@@ -609,112 +566,190 @@ class DatabaseHelper {
         FOREIGN KEY (visit_id) REFERENCES supervision_visits (id)
       )
     ''');
+  }
 
-    // Medicine Details table - for detailed medicine tracking
+  Future<void> _createLogisticsTable(Database db) async {
     await db.execute('''
-      CREATE TABLE visit_medicine_details (
+      CREATE TABLE visit_logistics_responses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         visit_id INTEGER NOT NULL,
-        medicine_name TEXT NOT NULL,
-        medicine_category TEXT,
-        availability TEXT,
-        quantity_available INTEGER,
-        unit_of_measurement TEXT,
-        expiry_date TEXT,
-        batch_number TEXT,
-        storage_temperature_ok INTEGER,
-        storage_humidity_ok INTEGER,
-        storage_location TEXT,
-        procurement_source TEXT,
-        cost_per_unit REAL,
-        last_restocked_date TEXT,
-        minimum_stock_level INTEGER,
-        stock_out_frequency TEXT,
-        quality_issues_noted TEXT,
+        -- Antihypertensives (no _units columns)
+        amlodipine_5_10mg TEXT,
+        amlodipine_5_10mg_quantity INTEGER,
+        enalapril_2_5_10mg TEXT,
+        enalapril_2_5_10mg_quantity INTEGER,
+        losartan_25_50mg TEXT,
+        losartan_25_50mg_quantity INTEGER,
+        hydrochlorothiazide_12_5_25mg TEXT,
+        hydrochlorothiazide_12_5_25mg_quantity INTEGER,
+        chlorthalidone_6_25_12_5mg TEXT,
+        chlorthalidone_6_25_12_5mg_quantity INTEGER,
+        other_antihypertensives TEXT,
+        other_antihypertensives_quantity INTEGER,
+        other_antihypertensives_specify TEXT,
+        -- Statins
+        atorvastatin_5mg TEXT,
+        atorvastatin_5mg_quantity INTEGER,
+        atorvastatin_10mg TEXT,
+        atorvastatin_10mg_quantity INTEGER,
+        atorvastatin_20mg TEXT,
+        atorvastatin_20mg_quantity INTEGER,
+        other_statins TEXT,
+        other_statins_quantity INTEGER,
+        other_statins_specify TEXT,
+        -- Diabetes medications
+        metformin_500mg TEXT,
+        metformin_500mg_quantity INTEGER,
+        metformin_1000mg TEXT,
+        metformin_1000mg_quantity INTEGER,
+        glimepiride_1_2mg TEXT,
+        glimepiride_1_2mg_quantity INTEGER,
+        gliclazide_40_80mg TEXT,
+        gliclazide_40_80mg_quantity INTEGER,
+        glipizide_2_5_5mg TEXT,
+        glipizide_2_5_5mg_quantity INTEGER,
+        sitagliptin_50mg TEXT,
+        sitagliptin_50mg_quantity INTEGER,
+        pioglitazone_5mg TEXT,
+        pioglitazone_5mg_quantity INTEGER,
+        empagliflozin_10mg TEXT,
+        empagliflozin_10mg_quantity INTEGER,
+        insulin_soluble_inj TEXT,
+        insulin_soluble_inj_quantity INTEGER,
+        insulin_nph_inj TEXT,
+        insulin_nph_inj_quantity INTEGER,
+        other_hypoglycemic_agents TEXT,
+        other_hypoglycemic_agents_quantity INTEGER,
+        other_hypoglycemic_agents_specify TEXT,
+        -- Emergency and cardiovascular
+        dextrose_25_solution TEXT,
+        dextrose_25_solution_quantity INTEGER,
+        aspirin_75mg TEXT,
+        aspirin_75mg_quantity INTEGER,
+        clopidogrel_75mg TEXT,
+        clopidogrel_75mg_quantity INTEGER,
+        metoprolol_succinate_12_5_25_50mg TEXT,
+        metoprolol_succinate_12_5_25_50mg_quantity INTEGER,
+        isosorbide_dinitrate_5mg TEXT,
+        isosorbide_dinitrate_5mg_quantity INTEGER,
+        other_drugs TEXT,
+        other_drugs_quantity INTEGER,
+        other_drugs_specify TEXT,
+        -- Antibiotics
+        amoxicillin_clavulanic_potassium_625mg TEXT,
+        amoxicillin_clavulanic_potassium_625mg_quantity INTEGER,
+        azithromycin_500mg TEXT,
+        azithromycin_500mg_quantity INTEGER,
+        other_antibiotics TEXT,
+        other_antibiotics_quantity INTEGER,
+        other_antibiotics_specify TEXT,
+        -- Respiratory
+        salbutamol_dpi TEXT,
+        salbutamol_dpi_quantity INTEGER,
+        salbutamol TEXT,
+        salbutamol_quantity INTEGER,
+        ipratropium TEXT,
+        ipratropium_quantity INTEGER,
+        tiotropium_bromide TEXT,
+        tiotropium_bromide_quantity INTEGER,
+        formoterol TEXT,
+        formoterol_quantity INTEGER,
+        other_bronchodilators TEXT,
+        other_bronchodilators_quantity INTEGER,
+        other_bronchodilators_specify TEXT,
+        prednisolone_5_10_20mg TEXT,
+        prednisolone_5_10_20mg_quantity INTEGER,
+        other_steroids_oral TEXT,
+        other_steroids_oral_quantity INTEGER,
+        other_steroids_oral_specify TEXT,
+        -- B1-B5 responses
+        b1_response TEXT,
+        b1_comment TEXT,
+        b1_respondents_comment TEXT,
+        b1_validation_note TEXT,
+        b2_response TEXT,
+        b2_comment TEXT,
+        b2_respondents_comment TEXT,
+        b2_validation_note TEXT,
+        b2_random_records_checked INTEGER,
+        b2_explanation_if_not_in_use TEXT,
+        b3_response TEXT,
+        b3_comment TEXT,
+        b3_respondents_comment TEXT,
+        b3_validation_note TEXT,
+        b3_expiry_date_verified INTEGER,
+        b3_storage_conditions_verified INTEGER,
+        b4_response TEXT,
+        b4_comment TEXT,
+        b4_respondents_comment TEXT,
+        b4_validation_note TEXT,
+        b4_expiry_date_verified INTEGER,
+        b4_storage_conditions_verified INTEGER,
+        b5_response TEXT,
+        b5_comment TEXT,
+        b5_respondents_comment TEXT,
+        b5_validation_note TEXT,
+        -- Category-specific comments
+        antihypertensive_comments TEXT,
+        statin_comments TEXT,
+        diabetes_medication_comments TEXT,
+        cardiovascular_medication_comments TEXT,
+        respiratory_medication_comments TEXT,
+        -- Additional tracking
+        expiry_dates_checked INTEGER,
+        storage_conditions_verified INTEGER,
+        actions_agreed TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (visit_id) REFERENCES supervision_visits (id)
       )
     ''');
+  }
 
-    // Patient Volumes table
+  Future<void> _createEquipmentTable(Database db) async {
     await db.execute('''
-      CREATE TABLE visit_patient_volumes (
+      CREATE TABLE visit_equipment_responses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         visit_id INTEGER NOT NULL,
-        total_patients_seen INTEGER,
-        ncd_patients_new INTEGER,
-        ncd_patients_followup INTEGER,
-        diabetes_patients INTEGER,
-        hypertension_patients INTEGER,
-        copd_patients INTEGER,
-        cardiovascular_patients INTEGER,
-        other_ncd_patients INTEGER,
-        referrals_made INTEGER,
-        referrals_received INTEGER,
-        emergency_cases INTEGER,
-        month_year TEXT,
-        data_source TEXT,
-        data_verified INTEGER,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (visit_id) REFERENCES supervision_visits (id)
-      )
-    ''');
-
-    // Equipment Functionality table - for detailed equipment assessment
-    await db.execute('''
-      CREATE TABLE visit_equipment_functionality (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        visit_id INTEGER NOT NULL,
-        equipment_name TEXT NOT NULL,
-        equipment_category TEXT,
-        brand_model TEXT,
-        serial_number TEXT,
-        availability TEXT,
-        functionality_status TEXT,
-        last_calibration_date TEXT,
-        calibration_due_date TEXT,
-        maintenance_schedule TEXT,
-        usage_frequency TEXT,
-        staff_trained_on_equipment INTEGER,
-        user_manual_available INTEGER,
-        spare_parts_available INTEGER,
-        warranty_status TEXT,
-        issues_noted TEXT,
-        repair_history TEXT,
-        procurement_date TEXT,
-        cost REAL,
-        funding_source TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (visit_id) REFERENCES supervision_visits (id)
-      )
-    ''');
-
-    // Quality Assurance table
-    await db.execute('''
-      CREATE TABLE visit_quality_assurance (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        visit_id INTEGER NOT NULL,
-        guidelines_followed INTEGER,
-        protocols_updated INTEGER,
-        clinical_audit_conducted INTEGER,
-        patient_satisfaction_assessed INTEGER,
-        records_complete INTEGER,
-        documentation_legible INTEGER,
-        consent_forms_used INTEGER,
-        privacy_maintained INTEGER,
-        infection_control_practices INTEGER,
-        hand_hygiene_facilities INTEGER,
-        emergency_procedures_known INTEGER,
-        adverse_events_reported INTEGER,
-        staff_knowledge_adequate INTEGER,
-        continuing_education_provided INTEGER,
-        supervision_regular INTEGER,
-        overall_quality_score INTEGER,
-        areas_for_improvement TEXT,
-        good_practices_observed TEXT,
+        -- Equipment with quantities only (no _units columns)
+        sphygmomanometer TEXT,
+        sphygmomanometer_quantity INTEGER,
+        weighing_scale TEXT,
+        weighing_scale_quantity INTEGER,
+        measuring_tape TEXT,
+        measuring_tape_quantity INTEGER,
+        peak_expiratory_flow_meter TEXT,
+        peak_expiratory_flow_meter_quantity INTEGER,
+        oxygen TEXT,
+        oxygen_quantity INTEGER,
+        oxygen_mask TEXT,
+        oxygen_mask_quantity INTEGER,
+        nebulizer TEXT,
+        nebulizer_quantity INTEGER,
+        pulse_oximetry TEXT,
+        pulse_oximetry_quantity INTEGER,
+        glucometer TEXT,
+        glucometer_quantity INTEGER,
+        glucometer_strips TEXT,
+        glucometer_strips_quantity INTEGER,
+        lancets TEXT,
+        lancets_quantity INTEGER,
+        urine_dipstick TEXT,
+        urine_dipstick_quantity INTEGER,
+        ecg TEXT,
+        ecg_quantity INTEGER,
+        other_equipment TEXT,
+        other_equipment_quantity INTEGER,
+        other_equipment_specify TEXT,
+        stethoscope TEXT,
+        stethoscope_quantity INTEGER,
+        thermometer TEXT,
+        thermometer_quantity INTEGER,
+        examination_table TEXT,
+        examination_table_quantity INTEGER,
+        privacy_screen TEXT,
+        privacy_screen_quantity INTEGER,
+        actions_agreed TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (visit_id) REFERENCES supervision_visits (id)
@@ -876,14 +911,10 @@ class DatabaseHelper {
       'visit_admin_management_responses',
       'visit_logistics_responses', 
       'visit_equipment_responses',
-      'visit_mhdc_management_responses',
+      'visit_khdc_management_responses',
       'visit_service_standards_responses',
       'visit_health_information_responses',
-      'visit_integration_responses',
-      'visit_medicine_details',
-      'visit_patient_volumes',
-      'visit_equipment_functionality',
-      'visit_quality_assurance'
+      'visit_integration_responses'
     ];
     
     for (final table in tables) {
@@ -945,43 +976,6 @@ class DatabaseHelper {
     return maps.isNotEmpty ? StaffTrainingData.fromJson(maps.first) : null;
   }
 
-  // Infrastructure operations
-  Future<void> insertInfrastructure(int formId, InfrastructureData infrastructure) async {
-    final db = await database;
-    
-    final data = infrastructure.toJson();
-    data['form_id'] = formId;
-    data['created_at'] = DateTime.now().toIso8601String();
-    data['updated_at'] = DateTime.now().toIso8601String();
-    
-    await db.insert('form_infrastructure', data);
-  }
-
-  Future<void> updateInfrastructure(int formId, InfrastructureData infrastructure) async {
-    final db = await database;
-    
-    final data = infrastructure.toJson();
-    data['updated_at'] = DateTime.now().toIso8601String();
-
-    await db.update(
-      'form_infrastructure',
-      data,
-      where: 'form_id = ?',
-      whereArgs: [formId],
-    );
-  }
-
-  Future<InfrastructureData?> getInfrastructureByFormId(int formId) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'form_infrastructure',
-      where: 'form_id = ?',
-      whereArgs: [formId],
-    );
-
-    return maps.isNotEmpty ? InfrastructureData.fromJson(maps.first) : null;
-  }
-
   // Visit section operations
   Future<void> insertAdminManagement(int visitId, AdminManagementData data) async {
     final db = await database;
@@ -1040,23 +1034,23 @@ class DatabaseHelper {
     return maps.isNotEmpty ? EquipmentData.fromJson(maps.first) : null;
   }
 
-  Future<void> insertMhdcManagement(int visitId, MhdcManagementData data) async {
+  Future<void> insertKhdcManagement(int visitId, KhdcManagementData data) async {
     final db = await database;
     final sectionData = data.toJson();
     sectionData['visit_id'] = visitId;
     sectionData['created_at'] = DateTime.now().toIso8601String();
     sectionData['updated_at'] = DateTime.now().toIso8601String();
-    await db.insert('visit_mhdc_management_responses', sectionData);
+    await db.insert('visit_khdc_management_responses', sectionData);
   }
 
-  Future<MhdcManagementData?> getMhdcManagement(int visitId) async {
+  Future<KhdcManagementData?> getKhdcManagement(int visitId) async {
     final db = await database;
     final maps = await db.query(
-      'visit_mhdc_management_responses',
+      'visit_khdc_management_responses',
       where: 'visit_id = ?',
       whereArgs: [visitId],
     );
-    return maps.isNotEmpty ? MhdcManagementData.fromJson(maps.first) : null;
+    return maps.isNotEmpty ? KhdcManagementData.fromJson(maps.first) : null;
   }
 
   Future<void> insertServiceStandards(int visitId, ServiceStandardsData data) async {
@@ -1116,90 +1110,6 @@ class DatabaseHelper {
     return maps.isNotEmpty ? IntegrationData.fromJson(maps.first) : null;
   }
 
-  // Medicine details operations
-  Future<void> insertMedicineDetails(int visitId, List<MedicineDetail> medicines) async {
-    final db = await database;
-    for (final medicine in medicines) {
-      final data = medicine.toJson();
-      data['visit_id'] = visitId;
-      data['created_at'] = DateTime.now().toIso8601String();
-      data['updated_at'] = DateTime.now().toIso8601String();
-      await db.insert('visit_medicine_details', data);
-    }
-  }
-
-  Future<List<MedicineDetail>> getMedicineDetails(int visitId) async {
-    final db = await database;
-    final maps = await db.query(
-      'visit_medicine_details',
-      where: 'visit_id = ?',
-      whereArgs: [visitId],
-    );
-    return maps.map((map) => MedicineDetail.fromJson(map)).toList();
-  }
-
-  // Patient volumes operations
-  Future<void> insertPatientVolumes(int visitId, PatientVolumes data) async {
-    final db = await database;
-    final sectionData = data.toJson();
-    sectionData['visit_id'] = visitId;
-    sectionData['created_at'] = DateTime.now().toIso8601String();
-    sectionData['updated_at'] = DateTime.now().toIso8601String();
-    await db.insert('visit_patient_volumes', sectionData);
-  }
-
-  Future<PatientVolumes?> getPatientVolumes(int visitId) async {
-    final db = await database;
-    final maps = await db.query(
-      'visit_patient_volumes',
-      where: 'visit_id = ?',
-      whereArgs: [visitId],
-    );
-    return maps.isNotEmpty ? PatientVolumes.fromJson(maps.first) : null;
-  }
-
-  // Equipment functionality operations
-  Future<void> insertEquipmentFunctionality(int visitId, List<EquipmentFunctionality> equipment) async {
-    final db = await database;
-    for (final item in equipment) {
-      final data = item.toJson();
-      data['visit_id'] = visitId;
-      data['created_at'] = DateTime.now().toIso8601String();
-      data['updated_at'] = DateTime.now().toIso8601String();
-      await db.insert('visit_equipment_functionality', data);
-    }
-  }
-
-  Future<List<EquipmentFunctionality>> getEquipmentFunctionality(int visitId) async {
-    final db = await database;
-    final maps = await db.query(
-      'visit_equipment_functionality',
-      where: 'visit_id = ?',
-      whereArgs: [visitId],
-    );
-    return maps.map((map) => EquipmentFunctionality.fromJson(map)).toList();
-  }
-
-  // Quality assurance operations
-  Future<void> insertQualityAssurance(int visitId, QualityAssurance data) async {
-    final db = await database;
-    final sectionData = data.toJson();
-    sectionData['visit_id'] = visitId;
-    sectionData['created_at'] = DateTime.now().toIso8601String();
-    sectionData['updated_at'] = DateTime.now().toIso8601String();
-    await db.insert('visit_quality_assurance', sectionData);
-  }
-
-  Future<QualityAssurance?> getQualityAssurance(int visitId) async {
-    final db = await database;
-    final maps = await db.query(
-      'visit_quality_assurance',
-      where: 'visit_id = ?',
-      whereArgs: [visitId],
-    );
-    return maps.isNotEmpty ? QualityAssurance.fromJson(maps.first) : null;
-  }
-
   // Enhanced visit loading with all sections
   Future<SupervisionVisit?> getCompleteVisit(int visitId) async {
     final visit = await getVisitById(visitId);
@@ -1209,27 +1119,19 @@ class DatabaseHelper {
     final adminManagement = await getAdminManagement(visitId);
     final logistics = await getLogistics(visitId);
     final equipment = await getEquipment(visitId);
-    final mhdcManagement = await getMhdcManagement(visitId);
+    final khdcManagement = await getKhdcManagement(visitId);
     final serviceStandards = await getServiceStandards(visitId);
     final healthInformation = await getHealthInformation(visitId);
     final integration = await getIntegration(visitId);
-    final medicineDetails = await getMedicineDetails(visitId);
-    final patientVolumes = await getPatientVolumes(visitId);
-    final equipmentFunctionality = await getEquipmentFunctionality(visitId);
-    final qualityAssurance = await getQualityAssurance(visitId);
 
     return visit.copyWith(
       adminManagement: adminManagement,
       logistics: logistics,
       equipment: equipment,
-      mhdcManagement: mhdcManagement,
+      khdcManagement: khdcManagement,
       serviceStandards: serviceStandards,
       healthInformation: healthInformation,
       integration: integration,
-      medicineDetails: medicineDetails.isNotEmpty ? medicineDetails : null,
-      patientVolumes: patientVolumes,
-      equipmentFunctionality: equipmentFunctionality.isNotEmpty ? equipmentFunctionality : null,
-      qualityAssurance: qualityAssurance,
     );
   }
 
@@ -1251,12 +1153,10 @@ class DatabaseHelper {
 
     // Load form-level data
     final staffTraining = await getStaffTrainingByFormId(formId);
-    final infrastructure = await getInfrastructureByFormId(formId);
 
     return form.copyWith(
       visits: completeVisits,
       staffTraining: staffTraining,
-      infrastructure: infrastructure,
     );
   }
 
@@ -1448,10 +1348,8 @@ class DatabaseHelper {
     final tables = [
       'supervision_forms', 'supervision_visits', 'form_staff_training', 'form_infrastructure',
       'visit_admin_management_responses', 'visit_logistics_responses', 'visit_equipment_responses',
-      'visit_mhdc_management_responses', 'visit_service_standards_responses', 
-      'visit_health_information_responses', 'visit_integration_responses',
-      'visit_medicine_details', 'visit_patient_volumes', 'visit_equipment_functionality',
-      'visit_quality_assurance'
+      'visit_khdc_management_responses', 'visit_service_standards_responses', 
+      'visit_health_information_responses', 'visit_integration_responses'
     ];
     
     for (final table in tables) {

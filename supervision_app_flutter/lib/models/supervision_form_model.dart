@@ -1,7 +1,7 @@
 import 'package:uuid/uuid.dart';
 import 'supervision_visit.dart';
 import 'staff_training_data.dart';
-import 'infrastructure_data.dart';
+
 
 class SupervisionForm {
   final int? id;
@@ -17,7 +17,7 @@ class SupervisionForm {
   final bool isActive;
   final List<SupervisionVisit>? visits;
   final StaffTrainingData? staffTraining;
-  final InfrastructureData? infrastructure;
+  
 
   SupervisionForm({
     this.id,
@@ -33,7 +33,7 @@ class SupervisionForm {
     this.isActive = true,
     this.visits,
     this.staffTraining,
-    this.infrastructure,
+    
   })  : tempId = tempId ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
@@ -57,9 +57,7 @@ class SupervisionForm {
       staffTraining: json['staffTraining'] != null || json['staff_training'] != null
           ? StaffTrainingData.fromJson(json['staffTraining'] ?? json['staff_training']) 
           : null,
-      infrastructure: json['infrastructure'] != null || json['facility_infrastructure'] != null
-          ? InfrastructureData.fromJson(json['infrastructure'] ?? json['facility_infrastructure']) 
-          : null,
+     
     );
   }
 
@@ -80,7 +78,7 @@ class SupervisionForm {
     if (userId != null) json['user_id'] = userId;
     if (visits != null) json['visits'] = visits!.map((v) => v.toJson()).toList();
     if (staffTraining != null) json['staff_training'] = staffTraining!.toJson();
-    if (infrastructure != null) json['facility_infrastructure'] = infrastructure!.toJson();
+    
 
     return json;
   }
@@ -94,7 +92,7 @@ class SupervisionForm {
       'formCreatedAt': createdAt.toIso8601String(),
       if (visits != null) 'visits': visits!.map((v) => v.toServerJson()).toList(),
       if (staffTraining != null) 'staffTraining': staffTraining!.toServerJson(),
-      if (infrastructure != null) 'infrastructure': infrastructure!.toServerJson(),
+      
     };
   }
 
@@ -112,7 +110,7 @@ class SupervisionForm {
     bool? isActive,
     List<SupervisionVisit>? visits,
     StaffTrainingData? staffTraining,
-    InfrastructureData? infrastructure,
+    
   }) {
     return SupervisionForm(
       id: id ?? this.id,
@@ -128,7 +126,7 @@ class SupervisionForm {
       isActive: isActive ?? this.isActive,
       visits: visits ?? this.visits,
       staffTraining: staffTraining ?? this.staffTraining,
-      infrastructure: infrastructure ?? this.infrastructure,
+      
     );
   }
 

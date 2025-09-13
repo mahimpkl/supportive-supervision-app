@@ -81,31 +81,10 @@ const validateSupervisionForm = [
     .isInt({ min: 0 })
     .withMessage('HA total staff must be a non-negative integer'),
   
-  body('staffTraining.training_certificates_verified')
-    .optional()
-    .isBoolean()
-    .withMessage('Training certificates verified must be a boolean'),
-  
-  // Infrastructure data (form-level) - enhanced validation
-  body('infrastructure')
-    .optional()
-    .isObject()
-    .withMessage('Infrastructure section must be an object'),
-  
-  body('infrastructure.total_rooms')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Total rooms must be a non-negative integer'),
-  
-  body('infrastructure.infrastructure_score')
-    .optional()
-    .isInt({ min: 0, max: 100 })
-    .withMessage('Infrastructure score must be between 0 and 100'),
-  
   handleValidationErrors
 ];
 
-// Visit validation (comprehensive with all new sections)
+// Visit validation (simplified - removed unnecessary sections)
 const validateVisit = [
   body('visitNumber')
     .isInt({ min: 1, max: 4 })
@@ -151,10 +130,10 @@ const validateVisit = [
     .isObject()
     .withMessage('Equipment section must be an object'),
   
-  body('mhdcManagement')
+  body('khdcManagement')
     .optional()
     .isObject()
-    .withMessage('MHDC management section must be an object'),
+    .withMessage('KHDC management section must be an object'),
   
   body('serviceStandards')
     .optional()
@@ -170,26 +149,6 @@ const validateVisit = [
     .optional()
     .isObject()
     .withMessage('Integration section must be an object'),
-  
-  body('medicineDetails')
-    .optional()
-    .isArray()
-    .withMessage('Medicine details must be an array'),
-  
-  body('patientVolumes')
-    .optional()
-    .isObject()
-    .withMessage('Patient volumes section must be an object'),
-  
-  body('equipmentFunctionality')
-    .optional()
-    .isArray()
-    .withMessage('Equipment functionality must be an array'),
-  
-  body('qualityAssurance')
-    .optional()
-    .isObject()
-    .withMessage('Quality assurance section must be an object'),
   
   handleValidationErrors
 ];
@@ -249,7 +208,7 @@ const validateAdminManagementResponse = [
   handleValidationErrors
 ];
 
-// Enhanced logistics responses validation (complete medicine list with quantities)
+// Enhanced logistics responses validation (quantities only - no units)
 const validateLogisticsResponse = [
   body('b1_response')
     .optional()
@@ -271,7 +230,7 @@ const validateLogisticsResponse = [
     .isLength({ max: 500 })
     .withMessage('B1 validation note must be 500 characters or less'),
   
-  // Complete medicine availability validations with quantities and units
+  // Complete medicine availability validations with quantities only (no units)
   ...['amlodipine_5_10mg', 'enalapril_2_5_10mg', 'losartan_25_50mg', 
       'hydrochlorothiazide_12_5_25mg', 'chlorthalidone_6_25_12_5mg', 
       'other_antihypertensives', 'atorvastatin_5mg', 'atorvastatin_10mg',
@@ -292,11 +251,7 @@ const validateLogisticsResponse = [
     body(`${medicine}_quantity`)
       .optional()
       .isInt({ min: 0 })
-      .withMessage(`${medicine} quantity must be a non-negative integer`),
-    body(`${medicine}_units`)
-      .optional()
-      .isLength({ max: 50 })
-      .withMessage(`${medicine} units must be 50 characters or less`)
+      .withMessage(`${medicine} quantity must be a non-negative integer`)
   ]),
   
   // Specify fields for 'other' medicines
@@ -364,80 +319,6 @@ const validateLogisticsResponse = [
       .withMessage(`${field} must be 500 characters or less`)
   ),
   
-  // Enhanced B2 glucometer fields
-  body('b2_random_records_checked')
-    .optional()
-    .isBoolean()
-    .withMessage('B2 random records checked must be a boolean'),
-  
-  body('b2_explanation_if_not_in_use')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('B2 explanation if not in use must be 500 characters or less'),
-  
-  // Enhanced B3/B4 urine strip fields
-  body('b3_expiry_date_verified')
-    .optional()
-    .isBoolean()
-    .withMessage('B3 expiry date verified must be a boolean'),
-  
-  body('b3_storage_conditions_verified')
-    .optional()
-    .isBoolean()
-    .withMessage('B3 storage conditions verified must be a boolean'),
-  
-  body('b4_expiry_date_verified')
-    .optional()
-    .isBoolean()
-    .withMessage('B4 expiry date verified must be a boolean'),
-  
-  body('b4_storage_conditions_verified')
-    .optional()
-    .isBoolean()
-    .withMessage('B4 storage conditions verified must be a boolean'),
-  
-  // Enhanced tracking fields
-  body('medicine_quantities')
-    .optional()
-    .isObject()
-    .withMessage('Medicine quantities must be an object'),
-  
-  body('expiry_dates_checked')
-    .optional()
-    .isBoolean()
-    .withMessage('Expiry dates checked must be a boolean'),
-  
-  body('storage_conditions_verified')
-    .optional()
-    .isBoolean()
-    .withMessage('Storage conditions verified must be a boolean'),
-  
-  // Category-specific comments
-  body('antihypertensive_comments')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Antihypertensive comments must be 500 characters or less'),
-  
-  body('statin_comments')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Statin comments must be 500 characters or less'),
-  
-  body('diabetes_medication_comments')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Diabetes medication comments must be 500 characters or less'),
-  
-  body('cardiovascular_medication_comments')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Cardiovascular medication comments must be 500 characters or less'),
-  
-  body('respiratory_medication_comments')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Respiratory medication comments must be 500 characters or less'),
-  
   body('actions_agreed')
     .optional()
     .isLength({ max: 1000 })
@@ -446,7 +327,7 @@ const validateLogisticsResponse = [
   handleValidationErrors
 ];
 
-// Enhanced equipment responses validation (with quantities and units)
+// Enhanced equipment responses validation (quantities only - no units)
 const validateEquipmentResponse = [
   ...['sphygmomanometer', 'weighing_scale', 'measuring_tape', 'peak_expiratory_flow_meter',
       'oxygen', 'oxygen_mask', 'nebulizer', 'pulse_oximetry', 'glucometer',
@@ -460,11 +341,7 @@ const validateEquipmentResponse = [
     body(`${equipment}_quantity`)
       .optional()
       .isInt({ min: 0 })
-      .withMessage(`${equipment} quantity must be a non-negative integer`),
-    body(`${equipment}_units`)
-      .optional()
-      .isLength({ max: 50 })
-      .withMessage(`${equipment} units must be 50 characters or less`)
+      .withMessage(`${equipment} quantity must be a non-negative integer`)
   ]),
   
   body('other_equipment_specify')
@@ -480,8 +357,8 @@ const validateEquipmentResponse = [
   handleValidationErrors
 ];
 
-// Enhanced MHDC management validation (with WHO-ISH tracking)
-const validateMhdcManagementResponse = [
+// Enhanced KHDC management validation (with WHO-ISH tracking)
+const validateKhdcManagementResponse = [
   ...['b6_response', 'b7_response', 'b8_response', 'b9_response', 'b10_response'].map(field =>
     body(field)
       .optional()
@@ -759,548 +636,20 @@ const validateIntegrationResponse = [
   handleValidationErrors
 ];
 
-// Enhanced staff training validation (with training dates and provider)
+// Enhanced staff training validation (KHDC naming, simplified)
 const validateStaffTraining = [
-  ...['ha_total_staff', 'ha_mhdc_trained', 'ha_fen_trained', 'ha_other_ncd_trained',
-      'sr_ahw_total_staff', 'sr_ahw_mhdc_trained', 'sr_ahw_fen_trained', 'sr_ahw_other_ncd_trained',
-      'ahw_total_staff', 'ahw_mhdc_trained', 'ahw_fen_trained', 'ahw_other_ncd_trained',
-      'sr_anm_total_staff', 'sr_anm_mhdc_trained', 'sr_anm_fen_trained', 'sr_anm_other_ncd_trained',
-      'anm_total_staff', 'anm_mhdc_trained', 'anm_fen_trained', 'anm_other_ncd_trained',
-      'others_total_staff', 'others_mhdc_trained', 'others_fen_trained', 'others_other_ncd_trained'
+  ...['ha_total_staff', 'ha_khdc_trained', 'ha_fen_trained', 'ha_other_ncd_trained',
+      'sr_ahw_total_staff', 'sr_ahw_khdc_trained', 'sr_ahw_fen_trained', 'sr_ahw_other_ncd_trained',
+      'ahw_total_staff', 'ahw_khdc_trained', 'ahw_fen_trained', 'ahw_other_ncd_trained',
+      'sr_anm_total_staff', 'sr_anm_khdc_trained', 'sr_anm_fen_trained', 'sr_anm_other_ncd_trained',
+      'anm_total_staff', 'anm_khdc_trained', 'anm_fen_trained', 'anm_other_ncd_trained',
+      'others_total_staff', 'others_khdc_trained', 'others_fen_trained', 'others_other_ncd_trained'
      ].map(field => 
     body(field)
       .optional()
       .isInt({ min: 0 })
       .withMessage(`${field} must be a non-negative integer`)
   ),
-  
-  body('last_mhdc_training_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Last MHDC training date must be a valid date'),
-  
-  body('last_fen_training_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Last FEN training date must be a valid date'),
-  
-  body('last_other_training_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Last other training date must be a valid date'),
-  
-  body('training_provider')
-    .optional()
-    .isLength({ max: 200 })
-    .withMessage('Training provider must be 200 characters or less'),
-  
-  body('training_certificates_verified')
-    .optional()
-    .isBoolean()
-    .withMessage('Training certificates verified must be a boolean'),
-  
-  handleValidationErrors
-];
-
-// Enhanced medicine details validation (comprehensive tracking)
-const validateMedicineDetails = [
-  body('*.medicine_name')
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Medicine name is required and must be 200 characters or less'),
-  
-  body('*.medicine_category')
-    .optional()
-    .isLength({ max: 100 })
-    .withMessage('Medicine category must be 100 characters or less'),
-  
-  body('*.availability')
-    .optional()
-    .isIn(['Y', 'N'])
-    .withMessage('Availability must be Y or N'),
-  
-  body('*.quantity_available')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Quantity available must be a non-negative integer'),
-  
-  body('*.unit_of_measurement')
-    .optional()
-    .isLength({ max: 50 })
-    .withMessage('Unit of measurement must be 50 characters or less'),
-  
-  body('*.expiry_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Expiry date must be a valid date'),
-  
-  body('*.batch_number')
-    .optional()
-    .isLength({ max: 100 })
-    .withMessage('Batch number must be 100 characters or less'),
-  
-  body('*.storage_temperature_ok')
-    .optional()
-    .isBoolean()
-    .withMessage('Storage temperature OK must be a boolean'),
-  
-  body('*.storage_humidity_ok')
-    .optional()
-    .isBoolean()
-    .withMessage('Storage humidity OK must be a boolean'),
-  
-  body('*.storage_location')
-    .optional()
-    .isLength({ max: 200 })
-    .withMessage('Storage location must be 200 characters or less'),
-  
-  body('*.procurement_source')
-    .optional()
-    .isLength({ max: 200 })
-    .withMessage('Procurement source must be 200 characters or less'),
-  
-  body('*.cost_per_unit')
-    .optional()
-    .isDecimal()
-    .withMessage('Cost per unit must be a valid decimal'),
-  
-  body('*.last_restocked_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Last restocked date must be a valid date'),
-  
-  body('*.minimum_stock_level')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Minimum stock level must be a non-negative integer'),
-  
-  body('*.stock_out_frequency')
-    .optional()
-    .isIn(['never', 'rarely', 'sometimes', 'often', 'always'])
-    .withMessage('Stock out frequency must be never, rarely, sometimes, often, or always'),
-  
-  body('*.quality_issues_noted')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Quality issues noted must be 500 characters or less'),
-  
-  handleValidationErrors
-];
-
-// Enhanced patient volumes validation (comprehensive D4 data)
-const validatePatientVolumes = [
-  body('total_patients_seen')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Total patients seen must be a non-negative integer'),
-  
-  body('ncd_patients_new')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('NCD patients new must be a non-negative integer'),
-  
-  body('ncd_patients_followup')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('NCD patients followup must be a non-negative integer'),
-  
-  body('diabetes_patients')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Diabetes patients must be a non-negative integer'),
-  
-  body('hypertension_patients')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Hypertension patients must be a non-negative integer'),
-  
-  body('copd_patients')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('COPD patients must be a non-negative integer'),
-  
-  body('cardiovascular_patients')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Cardiovascular patients must be a non-negative integer'),
-  
-  body('other_ncd_patients')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Other NCD patients must be a non-negative integer'),
-  
-  body('referrals_made')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Referrals made must be a non-negative integer'),
-  
-  body('referrals_received')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Referrals received must be a non-negative integer'),
-  
-  body('emergency_cases')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Emergency cases must be a non-negative integer'),
-  
-  body('month_year')
-    .optional()
-    .isISO8601()
-    .withMessage('Month year must be a valid date'),
-  
-  body('data_source')
-    .optional()
-    .isIn(['register', 'dashboard', 'estimation'])
-    .withMessage('Data source must be register, dashboard, or estimation'),
-  
-  body('data_verified')
-    .optional()
-    .isBoolean()
-    .withMessage('Data verified must be a boolean'),
-  
-  handleValidationErrors
-];
-
-// Equipment functionality validation (comprehensive tracking)
-const validateEquipmentFunctionality = [
-  body('*.equipment_name')
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Equipment name is required and must be 200 characters or less'),
-  
-  body('*.equipment_category')
-    .optional()
-    .isIn(['diagnostic', 'treatment', 'monitoring'])
-    .withMessage('Equipment category must be diagnostic, treatment, or monitoring'),
-  
-  body('*.brand_model')
-    .optional()
-    .isLength({ max: 200 })
-    .withMessage('Brand model must be 200 characters or less'),
-  
-  body('*.serial_number')
-    .optional()
-    .isLength({ max: 100 })
-    .withMessage('Serial number must be 100 characters or less'),
-  
-  body('*.availability')
-    .optional()
-    .isIn(['Y', 'N'])
-    .withMessage('Availability must be Y or N'),
-  
-  body('*.functionality_status')
-    .optional()
-    .isIn(['working', 'partially_working', 'not_working', 'needs_repair'])
-    .withMessage('Functionality status must be working, partially_working, not_working, or needs_repair'),
-  
-  body('*.last_calibration_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Last calibration date must be a valid date'),
-  
-  body('*.calibration_due_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Calibration due date must be a valid date'),
-  
-  body('*.maintenance_schedule')
-    .optional()
-    .isLength({ max: 100 })
-    .withMessage('Maintenance schedule must be 100 characters or less'),
-  
-  body('*.usage_frequency')
-    .optional()
-    .isIn(['daily', 'weekly', 'monthly', 'rarely'])
-    .withMessage('Usage frequency must be daily, weekly, monthly, or rarely'),
-  
-  body('*.staff_trained_on_equipment')
-    .optional()
-    .isBoolean()
-    .withMessage('Staff trained on equipment must be a boolean'),
-  
-  body('*.user_manual_available')
-    .optional()
-    .isBoolean()
-    .withMessage('User manual available must be a boolean'),
-  
-  body('*.spare_parts_available')
-    .optional()
-    .isBoolean()
-    .withMessage('Spare parts available must be a boolean'),
-  
-  body('*.warranty_status')
-    .optional()
-    .isIn(['active', 'expired', 'not_applicable'])
-    .withMessage('Warranty status must be active, expired, or not_applicable'),
-  
-  body('*.issues_noted')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Issues noted must be 500 characters or less'),
-  
-  body('*.repair_history')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Repair history must be 500 characters or less'),
-  
-  body('*.procurement_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Procurement date must be a valid date'),
-  
-  body('*.cost')
-    .optional()
-    .isDecimal()
-    .withMessage('Cost must be a valid decimal'),
-  
-  body('*.funding_source')
-    .optional()
-    .isLength({ max: 200 })
-    .withMessage('Funding source must be 200 characters or less'),
-  
-  handleValidationErrors
-];
-
-// Quality assurance validation (comprehensive tracking)
-const validateQualityAssurance = [
-  body('guidelines_followed')
-    .optional()
-    .isBoolean()
-    .withMessage('Guidelines followed must be a boolean'),
-  
-  body('protocols_updated')
-    .optional()
-    .isBoolean()
-    .withMessage('Protocols updated must be a boolean'),
-  
-  body('clinical_audit_conducted')
-    .optional()
-    .isBoolean()
-    .withMessage('Clinical audit conducted must be a boolean'),
-  
-  body('patient_satisfaction_assessed')
-    .optional()
-    .isBoolean()
-    .withMessage('Patient satisfaction assessed must be a boolean'),
-  
-  body('records_complete')
-    .optional()
-    .isBoolean()
-    .withMessage('Records complete must be a boolean'),
-  
-  body('documentation_legible')
-    .optional()
-    .isBoolean()
-    .withMessage('Documentation legible must be a boolean'),
-  
-  body('consent_forms_used')
-    .optional()
-    .isBoolean()
-    .withMessage('Consent forms used must be a boolean'),
-  
-  body('privacy_maintained')
-    .optional()
-    .isBoolean()
-    .withMessage('Privacy maintained must be a boolean'),
-  
-  body('infection_control_practices')
-    .optional()
-    .isBoolean()
-    .withMessage('Infection control practices must be a boolean'),
-  
-  body('hand_hygiene_facilities')
-    .optional()
-    .isBoolean()
-    .withMessage('Hand hygiene facilities must be a boolean'),
-  
-  body('emergency_procedures_known')
-    .optional()
-    .isBoolean()
-    .withMessage('Emergency procedures known must be a boolean'),
-  
-  body('adverse_events_reported')
-    .optional()
-    .isBoolean()
-    .withMessage('Adverse events reported must be a boolean'),
-  
-  body('staff_knowledge_adequate')
-    .optional()
-    .isBoolean()
-    .withMessage('Staff knowledge adequate must be a boolean'),
-  
-  body('continuing_education_provided')
-    .optional()
-    .isBoolean()
-    .withMessage('Continuing education provided must be a boolean'),
-  
-  body('supervision_regular')
-    .optional()
-    .isBoolean()
-    .withMessage('Supervision regular must be a boolean'),
-  
-  body('overall_quality_score')
-    .optional()
-    .isInt({ min: 0, max: 100 })
-    .withMessage('Overall quality score must be between 0 and 100'),
-  
-  body('areas_for_improvement')
-    .optional()
-    .isLength({ max: 1000 })
-    .withMessage('Areas for improvement must be 1000 characters or less'),
-  
-  body('good_practices_observed')
-    .optional()
-    .isLength({ max: 1000 })
-    .withMessage('Good practices observed must be 1000 characters or less'),
-  
-  handleValidationErrors
-];
-
-// Enhanced infrastructure validation (comprehensive facility assessment)
-const validateInfrastructure = [
-  body('total_rooms')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Total rooms must be a non-negative integer'),
-  
-  body('consultation_rooms')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Consultation rooms must be a non-negative integer'),
-  
-  body('waiting_area_adequate')
-    .optional()
-    .isBoolean()
-    .withMessage('Waiting area adequate must be a boolean'),
-  
-  body('waiting_area_capacity')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Waiting area capacity must be a non-negative integer'),
-  
-  body('pharmacy_storage_adequate')
-    .optional()
-    .isBoolean()
-    .withMessage('Pharmacy storage adequate must be a boolean'),
-  
-  body('pharmacy_storage_size_sqm')
-    .optional()
-    .isDecimal()
-    .withMessage('Pharmacy storage size sqm must be a valid decimal'),
-  
-  body('cold_chain_available')
-    .optional()
-    .isBoolean()
-    .withMessage('Cold chain available must be a boolean'),
-  
-  body('cold_chain_temperature_monitored')
-    .optional()
-    .isBoolean()
-    .withMessage('Cold chain temperature monitored must be a boolean'),
-  
-  body('medicine_storage_conditions_appropriate')
-    .optional()
-    .isBoolean()
-    .withMessage('Medicine storage conditions appropriate must be a boolean'),
-  
-  body('generator_backup')
-    .optional()
-    .isBoolean()
-    .withMessage('Generator backup must be a boolean'),
-  
-  body('generator_capacity_kw')
-    .optional()
-    .isDecimal()
-    .withMessage('Generator capacity kw must be a valid decimal'),
-  
-  body('water_supply_reliable')
-    .optional()
-    .isBoolean()
-    .withMessage('Water supply reliable must be a boolean'),
-  
-  body('water_storage_capacity_liters')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Water storage capacity liters must be a non-negative integer'),
-  
-  body('electricity_stable')
-    .optional()
-    .isBoolean()
-    .withMessage('Electricity stable must be a boolean'),
-  
-  body('internet_connectivity')
-    .optional()
-    .isBoolean()
-    .withMessage('Internet connectivity must be a boolean'),
-  
-  body('waste_disposal_system')
-    .optional()
-    .isBoolean()
-    .withMessage('Waste disposal system must be a boolean'),
-  
-  body('sharps_disposal_appropriate')
-    .optional()
-    .isBoolean()
-    .withMessage('Sharps disposal appropriate must be a boolean'),
-  
-  body('biomedical_waste_segregation')
-    .optional()
-    .isBoolean()
-    .withMessage('Biomedical waste segregation must be a boolean'),
-  
-  body('accessibility_features')
-    .optional()
-    .isBoolean()
-    .withMessage('Accessibility features must be a boolean'),
-  
-  body('wheelchair_accessible')
-    .optional()
-    .isBoolean()
-    .withMessage('Wheelchair accessible must be a boolean'),
-  
-  body('fire_safety_equipment')
-    .optional()
-    .isBoolean()
-    .withMessage('Fire safety equipment must be a boolean'),
-  
-  body('emergency_protocols_displayed')
-    .optional()
-    .isBoolean()
-    .withMessage('Emergency protocols displayed must be a boolean'),
-  
-  body('laboratory_available')
-    .optional()
-    .isBoolean()
-    .withMessage('Laboratory available must be a boolean'),
-  
-  body('xray_available')
-    .optional()
-    .isBoolean()
-    .withMessage('X-ray available must be a boolean'),
-  
-  body('ambulance_service')
-    .optional()
-    .isBoolean()
-    .withMessage('Ambulance service must be a boolean'),
-  
-  body('assessment_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Assessment date must be a valid date'),
-  
-  body('assessed_by')
-    .optional()
-    .isLength({ max: 200 })
-    .withMessage('Assessed by must be 200 characters or less'),
-  
-  body('infrastructure_score')
-    .optional()
-    .isInt({ min: 0, max: 100 })
-    .withMessage('Infrastructure score must be between 0 and 100'),
-  
-  body('priority_improvements')
-    .optional()
-    .isLength({ max: 1000 })
-    .withMessage('Priority improvements must be 1000 characters or less'),
   
   handleValidationErrors
 ];
@@ -1497,12 +846,7 @@ module.exports = {
   validateServiceStandardsResponse,
   validateHealthInformationResponse,
   validateIntegrationResponse,
-  validateMhdcManagementResponse,
-  validateMedicineDetails,
-  validatePatientVolumes,
-  validateEquipmentFunctionality,
-  validateQualityAssurance,
-  validateInfrastructure,
+  validateKhdcManagementResponse,
   validateId,
   validateVisitNumber,
   validateYesNoResponse,

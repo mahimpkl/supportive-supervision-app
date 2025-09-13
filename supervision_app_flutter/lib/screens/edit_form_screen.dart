@@ -6,7 +6,7 @@ import '../models/supervision_visit.dart';
 import '../models/admin_management_data.dart';
 import '../models/logistics_data.dart';
 import '../models/equipment_data.dart';
-import '../models/mhdc_management_data.dart';
+import '../models/khdc_management_data.dart';
 import '../models/service_standards_data.dart';
 import '../models/health_information_data.dart';
 import '../models/integration_data.dart';
@@ -14,7 +14,7 @@ import '../models/staff_training_data.dart';
 import '../widgets/visit_sections/admin_management_section.dart';
 import '../widgets/visit_sections/logistics_section.dart';
 import '../widgets/visit_sections/equipment_section.dart';
-import '../widgets/visit_sections/mhdc_management_section.dart';
+// import '../widgets/visit_sections/khdc_management_section.dart';
 import '../widgets/visit_sections/service_standards_section.dart';
 import '../widgets/visit_sections/health_information_section.dart';
 import '../widgets/visit_sections/integration_section.dart';
@@ -43,17 +43,17 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
 
   // Staff Training Controllers
   late final TextEditingController _haTotal;
-  late final TextEditingController _haMhdc;
+  late final TextEditingController _haKhdc;
   late final TextEditingController _haFen;
   late final TextEditingController _haOtherNcd;
   
   late final TextEditingController _srAhwTotal;
-  late final TextEditingController _srAhwMhdc;
+  late final TextEditingController _srAhwKhdc;
   late final TextEditingController _srAhwFen;
   late final TextEditingController _srAhwOtherNcd;
   
   late final TextEditingController _ahwTotal;
-  late final TextEditingController _ahwMhdc;
+  late final TextEditingController _ahwKhdc;
   late final TextEditingController _ahwFen;
   late final TextEditingController _ahwOtherNcd;
 
@@ -66,7 +66,7 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
   final Map<String, dynamic> _adminData = {};
   final Map<String, dynamic> _logisticsData = {};
   final Map<String, dynamic> _equipmentData = {};
-  final Map<String, dynamic> _mhdcData = {};
+  final Map<String, dynamic> _khdcData = {};
   final Map<String, dynamic> _serviceData = {};
   final Map<String, dynamic> _healthInfoData = {};
   final Map<String, dynamic> _integrationData = {};
@@ -98,17 +98,17 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
     _includeStaffTraining = staffTraining != null;
     
     _haTotal = TextEditingController(text: (staffTraining?.haTotalStaff ?? 0).toString());
-    _haMhdc = TextEditingController(text: (staffTraining?.haMhdcTrained ?? 0).toString());
+    _haKhdc = TextEditingController(text: (staffTraining?.haKhdcTrained ?? 0).toString());
     _haFen = TextEditingController(text: (staffTraining?.haFenTrained ?? 0).toString());
     _haOtherNcd = TextEditingController(text: (staffTraining?.haOtherNcdTrained ?? 0).toString());
     
     _srAhwTotal = TextEditingController(text: (staffTraining?.srAhwTotalStaff ?? 0).toString());
-    _srAhwMhdc = TextEditingController(text: (staffTraining?.srAhwMhdcTrained ?? 0).toString());
+    _srAhwKhdc = TextEditingController(text: (staffTraining?.srAhwKhdcTrained ?? 0).toString());
     _srAhwFen = TextEditingController(text: (staffTraining?.srAhwFenTrained ?? 0).toString());
     _srAhwOtherNcd = TextEditingController(text: (staffTraining?.srAhwOtherNcdTrained ?? 0).toString());
     
     _ahwTotal = TextEditingController(text: (staffTraining?.ahwTotalStaff ?? 0).toString());
-    _ahwMhdc = TextEditingController(text: (staffTraining?.ahwMhdcTrained ?? 0).toString());
+    _ahwKhdc = TextEditingController(text: (staffTraining?.ahwKhdcTrained ?? 0).toString());
     _ahwFen = TextEditingController(text: (staffTraining?.ahwFenTrained ?? 0).toString());
     _ahwOtherNcd = TextEditingController(text: (staffTraining?.ahwOtherNcdTrained ?? 0).toString());
 
@@ -156,8 +156,8 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
       if (visit.equipment != null) {
         _equipmentData.addAll(visit.equipment!.toJson());
       }
-      if (visit.mhdcManagement != null) {
-        _mhdcData.addAll(visit.mhdcManagement!.toJson());
+      if (visit.khdcManagement != null) {
+        _khdcData.addAll(visit.khdcManagement!.toJson());
       }
       if (visit.serviceStandards != null) {
         _serviceData.addAll(visit.serviceStandards!.toJson());
@@ -203,15 +203,15 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
       _provinceController,
       _districtController,
       _haTotal,
-      _haMhdc,
+      _haKhdc,
       _haFen,
       _haOtherNcd,
       _srAhwTotal,
-      _srAhwMhdc,
+      _srAhwKhdc,
       _srAhwFen,
       _srAhwOtherNcd,
       _ahwTotal,
-      _ahwMhdc,
+      _ahwKhdc,
       _ahwFen,
       _ahwOtherNcd,
       _recommendationsController,
@@ -236,15 +236,15 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
     _provinceController.dispose();
     _districtController.dispose();
     _haTotal.dispose();
-    _haMhdc.dispose();
+    _haKhdc.dispose();
     _haFen.dispose();
     _haOtherNcd.dispose();
     _srAhwTotal.dispose();
-    _srAhwMhdc.dispose();
+    _srAhwKhdc.dispose();
     _srAhwFen.dispose();
     _srAhwOtherNcd.dispose();
     _ahwTotal.dispose();
-    _ahwMhdc.dispose();
+    _ahwKhdc.dispose();
     _ahwFen.dispose();
     _ahwOtherNcd.dispose();
     _recommendationsController.dispose();
@@ -565,9 +565,9 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextFormField(
-                            controller: _haMhdc,
+                            controller: _haKhdc,
                             decoration: const InputDecoration(
-                              labelText: 'MHDC Trained',
+                              labelText: 'KHDC Trained',
                               hintText: '0',
                             ),
                             keyboardType: TextInputType.number,
@@ -627,9 +627,9 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextFormField(
-                            controller: _srAhwMhdc,
+                            controller: _srAhwKhdc,
                             decoration: const InputDecoration(
-                              labelText: 'MHDC Trained',
+                              labelText: 'KHDC Trained',
                               hintText: '0',
                             ),
                             keyboardType: TextInputType.number,
@@ -689,9 +689,9 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextFormField(
-                            controller: _ahwMhdc,
+                            controller: _ahwKhdc,
                             decoration: const InputDecoration(
-                              labelText: 'MHDC Trained',
+                              labelText: 'KHDC Trained',
                               hintText: '0',
                             ),
                             keyboardType: TextInputType.number,
@@ -828,7 +828,7 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
               Tab(text: 'Admin'),
               Tab(text: 'Logistics'),
               Tab(text: 'Equipment'),
-              Tab(text: 'MHDC'),
+              Tab(text: 'KHDC'),
               Tab(text: 'Service Standards'),
               Tab(text: 'Health Info'),
               Tab(text: 'Integration'),
@@ -869,15 +869,7 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
                     });
                   },
                 ),
-                MhdcManagementSection(
-                  data: _mhdcData,
-                  onDataChanged: (key, value) {
-                    setState(() {
-                      _mhdcData[key] = value;
-                      _hasChanges = true;
-                    });
-                  },
-                ),
+               
                 ServiceStandardsSection(
                   data: _serviceData,
                   onDataChanged: (key, value) {
@@ -968,8 +960,8 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
           ? EquipmentData.fromJson(_equipmentData) 
           : null;
       
-      final mhdcManagement = _mhdcData.isNotEmpty 
-          ? MhdcManagementData.fromJson(_mhdcData) 
+      final khdcManagement = _khdcData.isNotEmpty 
+          ? KhdcManagementData.fromJson(_khdcData) 
           : null;
       
       final serviceStandards = _serviceData.isNotEmpty 
@@ -996,7 +988,7 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
         adminManagement: adminManagement,
         logistics: logistics,
         equipment: equipment,
-        mhdcManagement: mhdcManagement,
+        khdcManagement: khdcManagement,
         serviceStandards: serviceStandards,
         healthInformation: healthInformation,
         integration: integration,
@@ -1007,7 +999,7 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
         adminManagement: adminManagement,
         logistics: logistics,
         equipment: equipment,
-        mhdcManagement: mhdcManagement,
+        khdcManagement: khdcManagement,
         serviceStandards: serviceStandards,
         healthInformation: healthInformation,
         integration: integration,
@@ -1057,15 +1049,15 @@ class _EditFormScreenState extends ConsumerState<EditFormScreen>
       if (_includeStaffTraining) {
         final staffTrainingMap = {
           'ha_total_staff': int.tryParse(_haTotal.text) ?? 0,
-          'ha_mhdc_trained': int.tryParse(_haMhdc.text) ?? 0,
+          'ha_khdc_trained': int.tryParse(_haKhdc.text) ?? 0,
           'ha_fen_trained': int.tryParse(_haFen.text) ?? 0,
           'ha_other_ncd_trained': int.tryParse(_haOtherNcd.text) ?? 0,
           'sr_ahw_total_staff': int.tryParse(_srAhwTotal.text) ?? 0,
-          'sr_ahw_mhdc_trained': int.tryParse(_srAhwMhdc.text) ?? 0,
+          'sr_ahw_khdc_trained': int.tryParse(_srAhwKhdc.text) ?? 0,
           'sr_ahw_fen_trained': int.tryParse(_srAhwFen.text) ?? 0,
           'sr_ahw_other_ncd_trained': int.tryParse(_srAhwOtherNcd.text) ?? 0,
           'ahw_total_staff': int.tryParse(_ahwTotal.text) ?? 0,
-          'ahw_mhdc_trained': int.tryParse(_ahwMhdc.text) ?? 0,
+          'ahw_khdc_trained': int.tryParse(_ahwKhdc.text) ?? 0,
           'ahw_fen_trained': int.tryParse(_ahwFen.text) ?? 0,
           'ahw_other_ncd_trained': int.tryParse(_ahwOtherNcd.text) ?? 0,
         };

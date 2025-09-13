@@ -5,18 +5,13 @@ import '../services/auth_interceptor.dart';
 import '../models/supervision_form_model.dart';
 import '../models/supervision_visit.dart';
 import '../models/staff_training_data.dart';
-import '../models/infrastructure_data.dart';
 import '../models/admin_management_data.dart';
 import '../models/logistics_data.dart';
 import '../models/equipment_data.dart';
-import '../models/mhdc_management_data.dart';
+import '../models/khdc_management_data.dart';
 import '../models/service_standards_data.dart';
 import '../models/health_information_data.dart';
 import '../models/integration_data.dart';
-import '../models/medicine_detail.dart';
-import '../models/patient_volumes.dart';
-import '../models/equipment_functionality.dart';
-import '../models/quality_assurance.dart';
 import '../services/database_helper.dart';
 import '../services/sync_service.dart';
 import '../services/api_client.dart';
@@ -125,7 +120,7 @@ class FormsNotifier extends StateNotifier<FormsState> {
     required String province,
     required String district,
     StaffTrainingData? staffTraining,
-    InfrastructureData? infrastructure,
+    
   }) async {
     try {
       final form = SupervisionForm(
@@ -141,9 +136,7 @@ class FormsNotifier extends StateNotifier<FormsState> {
         await _dbHelper.insertStaffTraining(formId, staffTraining);
       }
       
-      if (infrastructure != null) {
-        await _dbHelper.insertInfrastructure(formId, infrastructure);
-      }
+      
 
       await loadForms(); // Refresh forms list
       return true;
@@ -230,15 +223,6 @@ class FormsNotifier extends StateNotifier<FormsState> {
           await _dbHelper.updateStaffTraining(form.id!, form.staffTraining!);
         } else {
           await _dbHelper.insertStaffTraining(form.id!, form.staffTraining!);
-        }
-      }
-      
-      if (form.infrastructure != null) {
-        final existingInfrastructure = await _dbHelper.getInfrastructureByFormId(form.id!);
-        if (existingInfrastructure != null) {
-          await _dbHelper.updateInfrastructure(form.id!, form.infrastructure!);
-        } else {
-          await _dbHelper.insertInfrastructure(form.id!, form.infrastructure!);
         }
       }
 
@@ -360,14 +344,11 @@ class FormsNotifier extends StateNotifier<FormsState> {
     AdminManagementData? adminManagement,
     LogisticsData? logistics,
     EquipmentData? equipment,
-    MhdcManagementData? mhdcManagement,
+    KhdcManagementData? khdcManagement,
     ServiceStandardsData? serviceStandards,
     HealthInformationData? healthInformation,
     IntegrationData? integration,
-    List<MedicineDetail>? medicineDetails,
-    PatientVolumes? patientVolumes,
-    List<EquipmentFunctionality>? equipmentFunctionality,
-    QualityAssurance? qualityAssurance,
+    
   }) async {
     try {
       // Get current form to validate visit creation
@@ -418,8 +399,8 @@ class FormsNotifier extends StateNotifier<FormsState> {
         await _dbHelper.insertEquipment(visitId, equipment);
       }
       
-      if (mhdcManagement != null) {
-        await _dbHelper.insertMhdcManagement(visitId, mhdcManagement);
+      if (khdcManagement != null) {
+        await _dbHelper.insertKhdcManagement(visitId, khdcManagement);
       }
       
       if (serviceStandards != null) {
@@ -432,22 +413,6 @@ class FormsNotifier extends StateNotifier<FormsState> {
       
       if (integration != null) {
         await _dbHelper.insertIntegration(visitId, integration);
-      }
-
-      if (medicineDetails != null && medicineDetails.isNotEmpty) {
-        await _dbHelper.insertMedicineDetails(visitId, medicineDetails);
-      }
-
-      if (patientVolumes != null) {
-        await _dbHelper.insertPatientVolumes(visitId, patientVolumes);
-      }
-
-      if (equipmentFunctionality != null && equipmentFunctionality.isNotEmpty) {
-        await _dbHelper.insertEquipmentFunctionality(visitId, equipmentFunctionality);
-      }
-
-      if (qualityAssurance != null) {
-        await _dbHelper.insertQualityAssurance(visitId, qualityAssurance);
       }
 
       // Mark form as updated
@@ -487,14 +452,11 @@ class FormsNotifier extends StateNotifier<FormsState> {
     AdminManagementData? adminManagement,
     LogisticsData? logistics,
     EquipmentData? equipment,
-    MhdcManagementData? mhdcManagement,
+    KhdcManagementData? khdcManagement,
     ServiceStandardsData? serviceStandards,
     HealthInformationData? healthInformation,
     IntegrationData? integration,
-    List<MedicineDetail>? medicineDetails,
-    PatientVolumes? patientVolumes,
-    List<EquipmentFunctionality>? equipmentFunctionality,
-    QualityAssurance? qualityAssurance,
+    
   }) async {
     try {
       // Check if visit can be edited (not synced)
@@ -541,8 +503,8 @@ class FormsNotifier extends StateNotifier<FormsState> {
         await _dbHelper.insertEquipment(visitId, equipment);
       }
       
-      if (mhdcManagement != null) {
-        await _dbHelper.insertMhdcManagement(visitId, mhdcManagement);
+      if (khdcManagement != null) {
+        await _dbHelper.insertKhdcManagement(visitId, khdcManagement);
       }
       
       if (serviceStandards != null) {
@@ -557,21 +519,11 @@ class FormsNotifier extends StateNotifier<FormsState> {
         await _dbHelper.insertIntegration(visitId, integration);
       }
 
-      if (medicineDetails != null && medicineDetails.isNotEmpty) {
-        await _dbHelper.insertMedicineDetails(visitId, medicineDetails);
-      }
+      
 
-      if (patientVolumes != null) {
-        await _dbHelper.insertPatientVolumes(visitId, patientVolumes);
-      }
+      
 
-      if (equipmentFunctionality != null && equipmentFunctionality.isNotEmpty) {
-        await _dbHelper.insertEquipmentFunctionality(visitId, equipmentFunctionality);
-      }
-
-      if (qualityAssurance != null) {
-        await _dbHelper.insertQualityAssurance(visitId, qualityAssurance);
-      }
+      
 
       await loadForms();
       

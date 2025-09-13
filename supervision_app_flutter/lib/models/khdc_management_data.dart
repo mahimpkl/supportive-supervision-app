@@ -1,4 +1,4 @@
-class MhdcManagementData {
+class KhdcManagementData {
   // B6-B10 responses
   final String? b6Response;
   final String? b6Comment;
@@ -33,7 +33,7 @@ class MhdcManagementData {
 
   final String? actionsAgreed;
 
-  MhdcManagementData({
+  KhdcManagementData({
     this.b6Response,
     this.b6Comment,
     this.b6RespondentsComment,
@@ -63,8 +63,8 @@ class MhdcManagementData {
     this.actionsAgreed,
   });
 
-  factory MhdcManagementData.fromJson(Map<String, dynamic> json) {
-    return MhdcManagementData(
+  factory KhdcManagementData.fromJson(Map<String, dynamic> json) {
+    return KhdcManagementData(
       b6Response: json['b6_response'] ?? json['b6Response'],
       b6Comment: json['b6_comment'] ?? json['b6Comment'],
       b6RespondentsComment: json['b6_respondents_comment'] ?? json['b6RespondentsComment'],
@@ -170,7 +170,7 @@ class MhdcManagementData {
     };
   }
 
-  MhdcManagementData copyWith({
+  KhdcManagementData copyWith({
     String? b6Response,
     String? b6Comment,
     String? b6RespondentsComment,
@@ -199,7 +199,7 @@ class MhdcManagementData {
     bool? b10RiskStratificationAccurate,
     String? actionsAgreed,
   }) {
-    return MhdcManagementData(
+    return KhdcManagementData(
       b6Response: b6Response ?? this.b6Response,
       b6Comment: b6Comment ?? this.b6Comment,
       b6RespondentsComment: b6RespondentsComment ?? this.b6RespondentsComment,
@@ -230,3 +230,6 @@ class MhdcManagementData {
     );
   }
 }
+
+// Backward compatibility alias
+typedef MhdcManagementData = KhdcManagementData;

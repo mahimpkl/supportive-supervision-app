@@ -116,7 +116,7 @@ _buildEquipmentAvailabilitySection(),
 const SizedBox(height: 24),
 
 // B6-B10 MHDC Management questions
-_buildMhdcQuestions(),
+_buildKhdcQuestions(),
                 ],
               ),
             ),
@@ -566,18 +566,18 @@ _buildMhdcQuestions(),
     );
   }
 
-  Widget _buildMhdcQuestions() {
+  Widget _buildKhdcQuestions() {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const Text(
-        'MHDC Management',
+        'KHDC Management',
         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
       const SizedBox(height: 16),
       
       _buildResponseQuestion(
-        'B6. Are the MHDC NCD management leaflets for Healthcare workers available at the Health Center?',
+        'B6. Are the KHDC NCD management leaflets for Healthcare workers available at the Health Center?',
         'b6_response',
       ),
       _buildCommentField('B6 Comments', 'b6_comment'),
@@ -586,7 +586,7 @@ _buildMhdcQuestions(),
       const SizedBox(height: 16),
       
       _buildResponseQuestion(
-        'B7. Are MHDC awareness and patient education materials available at the health center?',
+        'B7. Are KHDC awareness and patient education materials available at the health center?',
         'b7_response',
       ),
       _buildCommentField('B7 Comments', 'b7_comment'),

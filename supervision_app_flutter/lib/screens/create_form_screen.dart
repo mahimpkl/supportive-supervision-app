@@ -18,17 +18,17 @@ class _CreateFormScreenState extends ConsumerState<CreateFormScreen> {
 
   // Staff Training Controllers
   final _haTotal = TextEditingController();
-  final _haMhdc = TextEditingController();
+  final _haKhdc = TextEditingController();
   final _haFen = TextEditingController();
   final _haOtherNcd = TextEditingController();
   
   final _srAhwTotal = TextEditingController();
-  final _srAhwMhdc = TextEditingController();
+  final _srAhwKhdc = TextEditingController();
   final _srAhwFen = TextEditingController();
   final _srAhwOtherNcd = TextEditingController();
   
   final _ahwTotal = TextEditingController();
-  final _ahwMhdc = TextEditingController();
+  final _ahwKhdc = TextEditingController();
   final _ahwFen = TextEditingController();
   final _ahwOtherNcd = TextEditingController();
 
@@ -41,15 +41,15 @@ class _CreateFormScreenState extends ConsumerState<CreateFormScreen> {
     _provinceController.dispose();
     _districtController.dispose();
     _haTotal.dispose();
-    _haMhdc.dispose();
+    _haKhdc.dispose();
     _haFen.dispose();
     _haOtherNcd.dispose();
     _srAhwTotal.dispose();
-    _srAhwMhdc.dispose();
+    _srAhwKhdc.dispose();
     _srAhwFen.dispose();
     _srAhwOtherNcd.dispose();
     _ahwTotal.dispose();
-    _ahwMhdc.dispose();
+    _ahwKhdc.dispose();
     _ahwFen.dispose();
     _ahwOtherNcd.dispose();
     super.dispose();
@@ -187,9 +187,9 @@ class _CreateFormScreenState extends ConsumerState<CreateFormScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: TextFormField(
-                                controller: _haMhdc,
+                                controller: _haKhdc,
                                 decoration: const InputDecoration(
-                                  labelText: 'MHDC Trained',
+                                  labelText: 'KHDC Trained',
                                   hintText: '0',
                                 ),
                                 keyboardType: TextInputType.number,
@@ -248,9 +248,9 @@ class _CreateFormScreenState extends ConsumerState<CreateFormScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: TextFormField(
-                                controller: _srAhwMhdc,
+                                controller: _srAhwKhdc,
                                 decoration: const InputDecoration(
-                                  labelText: 'MHDC Trained',
+                                  labelText: 'KHDC Trained',
                                   hintText: '0',
                                 ),
                                 keyboardType: TextInputType.number,
@@ -309,9 +309,9 @@ class _CreateFormScreenState extends ConsumerState<CreateFormScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: TextFormField(
-                                controller: _ahwMhdc,
+                                controller: _ahwKhdc,
                                 decoration: const InputDecoration(
-                                  labelText: 'MHDC Trained',
+                                  labelText: 'KHDC Trained',
                                   hintText: '0',
                                 ),
                                 keyboardType: TextInputType.number,
@@ -393,15 +393,15 @@ class _CreateFormScreenState extends ConsumerState<CreateFormScreen> {
       if (_includeStaffTraining) {
         staffTraining = StaffTrainingData(
           haTotalStaff: int.tryParse(_haTotal.text),
-          haMhdcTrained: int.tryParse(_haMhdc.text),
+          haKhdcTrained: int.tryParse(_haKhdc.text),
           haFenTrained: int.tryParse(_haFen.text),
           haOtherNcdTrained: int.tryParse(_haOtherNcd.text),
           srAhwTotalStaff: int.tryParse(_srAhwTotal.text),
-          srAhwMhdcTrained: int.tryParse(_srAhwMhdc.text),
+          srAhwKhdcTrained: int.tryParse(_srAhwKhdc.text),
           srAhwFenTrained: int.tryParse(_srAhwFen.text),
           srAhwOtherNcdTrained: int.tryParse(_srAhwOtherNcd.text),
           ahwTotalStaff: int.tryParse(_ahwTotal.text),
-          ahwMhdcTrained: int.tryParse(_ahwMhdc.text),
+          ahwKhdcTrained: int.tryParse(_ahwKhdc.text),
           ahwFenTrained: int.tryParse(_ahwFen.text),
           ahwOtherNcdTrained: int.tryParse(_ahwOtherNcd.text),
         );
